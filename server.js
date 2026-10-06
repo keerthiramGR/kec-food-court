@@ -396,6 +396,10 @@ app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 KEC Food Court Node.js Express server running at http://localhost:${PORT}`);
-});
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`🚀 KEC Food Court Node.js Express server running at http://localhost:${PORT}`);
+  });
+}
+
+export default app;
