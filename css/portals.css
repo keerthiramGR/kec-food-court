@@ -963,3 +963,440 @@ html.dark .demo-cred-btn {
 .demo-cred-btn:hover {
   transform: scale(1.05);
 }
+
+/* --------------------------------------------------------------------------
+   Official Campus Food Court Bill & Unique QR Code Receipt Styles
+   -------------------------------------------------------------------------- */
+.bill-receipt-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  padding: 24px 22px;
+  position: relative;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+/* Bill Header */
+.bill-header {
+  border-bottom: 2px dashed rgba(255, 255, 255, 0.12);
+  padding-bottom: 16px;
+  margin-bottom: 18px;
+  text-align: center;
+}
+
+html:not(.dark) .bill-header {
+  border-bottom-color: rgba(0, 0, 0, 0.12);
+}
+
+.bill-brand-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.bill-logo-circle {
+  width: 44px;
+  height: 44px;
+  background: rgba(255, 159, 28, 0.12);
+  border: 1px solid rgba(255, 159, 28, 0.3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  flex-shrink: 0;
+}
+
+.bill-kec-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.bill-institution {
+  font-family: var(--font-brand);
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: 1.2px;
+  color: var(--primary-gold);
+}
+
+.bill-title {
+  font-family: var(--font-brand);
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+  color: #FFFFFF;
+}
+
+html:not(.dark) .bill-title {
+  color: #0F172A;
+}
+
+.bill-address {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.bill-stamp {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 3px 12px;
+  background: rgba(255, 159, 28, 0.08);
+  border: 1px solid rgba(255, 159, 28, 0.25);
+  border-radius: var(--radius-full);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  color: var(--primary-gold);
+}
+
+/* Prominent Token Banner */
+.bill-token-banner {
+  background: linear-gradient(135deg, rgba(255, 159, 28, 0.15) 0%, rgba(255, 87, 34, 0.12) 100%);
+  border: 2px solid var(--primary-gold);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  text-align: center;
+  margin-bottom: 20px;
+  position: relative;
+  box-shadow: 0 0 24px rgba(255, 159, 28, 0.15);
+}
+
+.bill-token-caption {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.bill-token-number {
+  font-family: var(--font-mono);
+  font-size: 2.8rem;
+  font-weight: 900;
+  letter-spacing: 3px;
+  color: var(--primary-gold);
+  line-height: 1.1;
+  margin: 4px 0;
+  text-shadow: 0 0 16px rgba(255, 159, 28, 0.35);
+}
+
+.bill-token-sub {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+/* Meta Grid */
+.bill-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+
+.bill-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bill-meta-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-muted);
+}
+
+.bill-meta-val {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+/* Student Information Box */
+.bill-student-box {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  margin-bottom: 18px;
+}
+
+.bill-box-title {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.bill-student-row {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+/* Items Table */
+.bill-table-wrap {
+  margin-bottom: 16px;
+  overflow-x: auto;
+}
+
+.bill-items-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.bill-items-table th {
+  padding: 8px 10px;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-muted);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+html:not(.dark) .bill-items-table th {
+  border-bottom-color: rgba(0, 0, 0, 0.1);
+}
+
+.bill-items-table td {
+  padding: 10px 10px;
+  font-size: 0.88rem;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+}
+
+html:not(.dark) .bill-items-table td {
+  border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+
+/* Totals Box */
+.bill-totals-box {
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin-bottom: 20px;
+}
+
+.bill-total-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.84rem;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.bill-grand-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 10px;
+  margin-top: 8px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.15);
+  font-weight: 800;
+  color: #FFFFFF;
+}
+
+html:not(.dark) .bill-grand-total-row {
+  color: #0F172A;
+  border-top-color: rgba(0, 0, 0, 0.15);
+}
+
+.bill-grand-price {
+  font-size: 1.5rem;
+  font-family: var(--font-mono);
+  font-weight: 900;
+  color: var(--primary-gold);
+}
+
+.bill-payment-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-glass);
+}
+
+.payment-check-badge {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10B981;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+}
+
+/* QR Code Section */
+.bill-qr-section {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.bill-qr-wrapper {
+  flex-shrink: 0;
+}
+
+.bill-qr-card {
+  width: 170px;
+  height: 170px;
+  background: #FFFFFF;
+  border-radius: var(--radius-md);
+  padding: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.qr-svg-holder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qr-svg-holder svg {
+  width: 100%;
+  height: 100%;
+}
+
+.qr-scan-guide {
+  position: absolute;
+  inset: 4px;
+  pointer-events: none;
+}
+
+.qr-corner {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-color: #FF9F1C;
+  border-style: solid;
+}
+
+.qr-corner.top-left {
+  top: 0;
+  left: 0;
+  border-width: 3px 0 0 3px;
+}
+
+.qr-corner.top-right {
+  top: 0;
+  right: 0;
+  border-width: 3px 3px 0 0;
+}
+
+.qr-corner.bottom-left {
+  bottom: 0;
+  left: 0;
+  border-width: 0 0 3px 3px;
+}
+
+.qr-corner.bottom-right {
+  bottom: 0;
+  right: 0;
+  border-width: 0 3px 3px 0;
+}
+
+.bill-qr-instructions {
+  flex: 1;
+  min-width: 180px;
+  text-align: center;
+}
+
+/* Bill Footer */
+.bill-footer {
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  padding-top: 12px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+html:not(.dark) .bill-footer {
+  border-top-color: rgba(0, 0, 0, 0.08);
+}
+
+/* Bill Actions Bar */
+.bill-actions-bar {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+/* Print Styles */
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  #bill-receipt-modal,
+  #bill-receipt-modal * {
+    visibility: visible !important;
+  }
+  #bill-receipt-modal {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: #FFFFFF !important;
+    color: #000000 !important;
+    display: block !important;
+    opacity: 1 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    z-index: 99999 !important;
+  }
+  .bill-modal-box {
+    max-width: 100% !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #FFFFFF !important;
+    color: #000000 !important;
+    transform: none !important;
+  }
+  .bill-receipt-card {
+    background: #FFFFFF !important;
+    color: #000000 !important;
+    border: 1px solid #CCCCCC !important;
+    box-shadow: none !important;
+  }
+  .bill-institution, .bill-title, .bill-token-number, .bill-grand-price {
+    color: #000000 !important;
+  }
+  .bill-token-banner {
+    background: #F1F5F9 !important;
+    border-color: #000000 !important;
+  }
+  .no-print, .modal-header, .modal-close-btn {
+    display: none !important;
+  }
+}
+

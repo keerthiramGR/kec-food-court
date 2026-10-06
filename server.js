@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import QRCode from 'qrcode';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -298,19 +299,66 @@ app.get('/api/orders', (req, res) => {
   res.json({ success: true, count: ordersData.length, orders: ordersData });
 });
 
-app.post('/api/orders', (req, res) => {
+app.post('/api/orders', async (req, res) => {
   const tokenSeq = Math.floor(10 + Math.random() * 90);
+  const orderId = req.body.id || `KEC-${Math.floor(1000 + Math.random() * 9000)}`;
+  const tokenNumber = req.body.tokenNumber || `TK-${tokenSeq}`;
+
+  const qrText = [
+    `KEC FOOD COURT OFFICIAL BILL`,
+    `----------------------------`,
+    `Order ID: ${orderId}`,
+    `Token: ${tokenNumber}`,
+    `Stall: ${req.body.stallNumber || ''} - ${req.body.shopName || ''}`,
+    `Student: ${req.body.studentName || 'Student'} (${req.body.studentRoll || 'Campus'})`,
+    `Items: ${(req.body.items || []).map(i => `${i.qty}x ${i.name}`).join(', ')}`,
+    `Total: Rs.${req.body.totalAmount || 0}`,
+    `Dining: ${req.body.diningType || 'Dine-In'}`,
+    `Status: ${req.body.status || 'Placed'}`,
+    `Payment: PAID ONLINE`,
+    `Verified KEC Smart Dining`
+  ].join('\n');
+
+  let qrCodeSvg = '';
+  try {
+    qrCodeSvg = await QRCode.toString(qrText, {
+      type: 'svg',
+      margin: 1,
+      width: 170,
+      color: { dark: '#0A0E17', light: '#FFFFFF' }
+    });
+  } catch (e) {
+    console.warn('Backend QR generation note:', e);
+  }
+
   const newOrder = {
-    id: `KEC-${Math.floor(1000 + Math.random() * 9000)}`,
-    tokenNumber: `TK-${tokenSeq}`,
+    id: orderId,
+    tokenNumber,
     status: "Placed",
     createdTime: Date.now(),
     timestamp: "Just now",
+    qrCodeSvg,
     ...req.body
   };
 
   ordersData.unshift(newOrder);
   res.status(201).json({ success: true, order: newOrder });
+});
+
+// QR Code Generator on Demand
+app.get('/api/qrcode', async (req, res) => {
+  try {
+    const text = req.query.text || 'KEC FOOD COURT';
+    const svg = await QRCode.toString(text, {
+      type: 'svg',
+      margin: 1,
+      width: parseInt(req.query.width) || 170,
+      color: { dark: '#0A0E17', light: '#FFFFFF' }
+    });
+    res.type('image/svg+xml').send(svg);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 app.patch('/api/orders/:id/status', (req, res) => {

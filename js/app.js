@@ -4,6 +4,7 @@ import { initAuth } from './auth.js';
 import { renderStudentPortal, updateCartBadge } from './student.js';
 import { renderOwnerPortal } from './owner.js';
 import { renderAdminPortal } from './admin.js';
+import { openOrderBillModal } from './bill.js';
 
 let activePortal = 'student'; // 'student' | 'owner' | 'admin'
 
@@ -223,6 +224,7 @@ function initCartModal() {
           const newOrder = state.createOrder({
             studentName: currentUser ? currentUser.name : "Aravind Kumar",
             studentRoll: currentUser ? (currentUser.rollNo || "21EC108") : "21EC108",
+            studentPhone: currentUser ? (currentUser.mobile || currentUser.phone || "98427 06474") : "98427 06474",
             shopId: firstItem.shopId,
             shopName: firstItem.shopName,
             stallNumber: firstItem.stallNumber,
@@ -236,17 +238,16 @@ function initCartModal() {
           cartModal.classList.remove('open');
           updateCartBadge();
 
-          showToast(`Order Placed! Your Token is ${newOrder.tokenNumber}`, 'success');
+          showToast(`Order Placed! Token: ${newOrder.tokenNumber}`, 'success');
           
           // Switch to student portal and refresh
           activePortal = 'student';
           renderApp();
 
-          // Scroll to live tokens board
+          // Display the Official Bill with unique QR code immediately
           setTimeout(() => {
-            const tokenSection = document.getElementById('student-tokens-section');
-            if (tokenSection) tokenSection.scrollIntoView({ behavior: 'smooth' });
-          }, 400);
+            openOrderBillModal(newOrder);
+          }, 350);
         });
       }
     }

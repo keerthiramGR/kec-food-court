@@ -1,4 +1,5 @@
 import { state } from './state.js';
+import { openOrderBillModal } from './bill.js';
 
 export function renderStudentPortal(container, showToast, renderApp) {
   const shops = state.getShops();
@@ -124,10 +125,14 @@ export function renderStudentPortal(container, showToast, renderApp) {
                 `).join('')}
               </div>
 
-              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; color: var(--text-secondary); pt-2;">
+              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; color: var(--text-secondary); padding-top: 8px; border-top: 1px solid var(--border-glass);">
                 <span>Type: <strong style="color: #FFF;">${order.diningType || 'Dine-In'}</strong></span>
                 <span style="font-weight: 800; color: var(--primary-gold); font-size: 1.05rem;">Total: ₹${order.totalAmount}</span>
               </div>
+
+              <button class="btn btn-outline-gold btn-sm btn-view-bill" data-order-id="${order.id}" style="width: 100%; margin-top: 10px; font-size: 0.82rem; padding: 7px 12px;">
+                <span>🧾</span> View Bill & QR Code
+              </button>
             </div>
           `;
         }).join('')}
@@ -484,6 +489,18 @@ export function renderStudentPortal(container, showToast, renderApp) {
     renderModalBody();
     modal.classList.add('open');
   };
+
+  // Bind View Bill & QR Code buttons on token cards
+  container.querySelectorAll('.btn-view-bill').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const orderId = btn.dataset.orderId;
+      const order = state.getOrders().find(o => o.id === orderId);
+      if (order) {
+        openOrderBillModal(order);
+      }
+    });
+  });
 
   updateStallGrid();
   updateCartBadge();
