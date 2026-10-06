@@ -1,0 +1,10 @@
+{
+  "name": "kec-food-court",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "KEC Food Court - Smart Campus Dining Platform",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  }
+}

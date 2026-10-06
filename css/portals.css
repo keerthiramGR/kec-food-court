@@ -1,0 +1,829 @@
+/* ==========================================================================
+   KEC FOOD COURT - PORTALS & INTERACTIVE VIEWS
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Common Portal Elements & Hero
+   -------------------------------------------------------------------------- */
+.portal-hero {
+  position: relative;
+  border-radius: var(--radius-xl);
+  padding: 40px;
+  margin-bottom: 32px;
+  background: linear-gradient(135deg, rgba(26, 34, 52, 0.9) 0%, rgba(14, 18, 27, 0.95) 100%);
+  border: 1px solid var(--border-glass);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.portal-hero::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 450px;
+  height: 450px;
+  background: radial-gradient(circle, rgba(255, 159, 28, 0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.portal-hero-content {
+  position: relative;
+  z-index: 2;
+  max-width: 720px;
+}
+
+.portal-hero-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: rgba(255, 159, 28, 0.12);
+  border: 1px solid rgba(255, 159, 28, 0.3);
+  border-radius: var(--radius-full);
+  color: var(--primary-gold);
+  font-size: 0.82rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.portal-hero-title {
+  font-size: 2.5rem;
+  margin-bottom: 12px;
+  line-height: 1.15;
+}
+
+.portal-hero-desc {
+  font-size: 1.05rem;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+
+/* Metric Stats Row */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.stat-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: transform var(--transition-normal), border-color var(--transition-normal);
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 159, 28, 0.3);
+}
+
+.stat-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.stat-value {
+  font-size: 1.7rem;
+  font-weight: 800;
+  font-family: var(--font-brand);
+  color: #FFFFFF;
+}
+
+.stat-label {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* --------------------------------------------------------------------------
+   Student Portal: Stalls & Food Grid
+   -------------------------------------------------------------------------- */
+.student-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.filter-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.filter-chip {
+  padding: 8px 18px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-glass);
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.filter-chip:hover, .filter-chip.active {
+  background: var(--primary-gold);
+  color: #0A0E17;
+  border-color: var(--primary-gold);
+  box-shadow: var(--glow-gold);
+}
+
+.search-input-wrap {
+  position: relative;
+  min-width: 280px;
+}
+
+.search-input-wrap input {
+  width: 100%;
+  padding: 10px 16px 10px 40px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-full);
+  color: #FFFFFF;
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  outline: none;
+  transition: all var(--transition-fast);
+}
+
+.search-input-wrap input:focus {
+  border-color: var(--primary-gold);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 12px rgba(255, 159, 28, 0.25);
+}
+
+.search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+}
+
+/* Stalls Grid */
+.stalls-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+  margin-bottom: 40px;
+}
+
+.stall-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: all var(--transition-normal);
+  cursor: pointer;
+  position: relative;
+}
+
+.stall-card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(255, 159, 28, 0.4);
+  box-shadow: 0 16px 36px -10px rgba(0, 0, 0, 0.7), var(--glow-gold);
+}
+
+.stall-card-banner {
+  height: 140px;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  background-color: #1a2234;
+}
+
+.stall-card-banner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.stall-card:hover .stall-card-banner img {
+  transform: scale(1.08);
+}
+
+.stall-card-banner-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(18, 24, 38, 0.95) 0%, rgba(18, 24, 38, 0.2) 60%, transparent 100%);
+}
+
+.stall-badge-float {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 2;
+}
+
+.stall-status-float {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+}
+
+.stall-card-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.stall-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.stall-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+
+.stall-tagline {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  line-height: 1.4;
+  flex-grow: 1;
+}
+
+.stall-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-glass);
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.stall-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.stall-meta-item.rating {
+  color: #FBBF24;
+  font-weight: 700;
+}
+
+/* Menu Items inside Stall view */
+.menu-items-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 20px;
+}
+
+.menu-item-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  transition: all var(--transition-fast);
+}
+
+.menu-item-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 159, 28, 0.25);
+  transform: translateY(-2px);
+}
+
+.menu-item-img {
+  width: 78px;
+  height: 78px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  flex-shrink: 0;
+  background-color: #1a2234;
+}
+
+.menu-item-details {
+  flex-grow: 1;
+}
+
+.menu-item-name {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: #FFFFFF;
+}
+
+.menu-item-price {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--primary-gold);
+  font-family: var(--font-brand);
+  margin-bottom: 6px;
+}
+
+.menu-item-tags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+}
+
+/* Veg / Non-Veg Indicator Dot */
+.diet-indicator {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1.5px solid;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.diet-indicator.veg {
+  border-color: #10B981;
+}
+.diet-indicator.veg::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #10B981;
+}
+.diet-indicator.non-veg {
+  border-color: #EF4444;
+}
+.diet-indicator.non-veg::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #EF4444;
+}
+
+/* --------------------------------------------------------------------------
+   Student Cart & Token Board
+   -------------------------------------------------------------------------- */
+.cart-floating-trigger {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 800;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 22px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, #FF9F1C 0%, #FF5722 100%);
+  color: #0A0E17;
+  font-weight: 800;
+  font-family: var(--font-brand);
+  box-shadow: 0 10px 30px rgba(255, 87, 34, 0.4), var(--glow-gold);
+  cursor: pointer;
+  border: none;
+  transition: all var(--transition-bounce);
+}
+
+.cart-floating-trigger:hover {
+  transform: translateY(-4px) scale(1.04);
+}
+
+.cart-badge-count {
+  background: #0A0E17;
+  color: var(--primary-gold);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+}
+
+/* Active Orders Board */
+.orders-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 18px;
+  margin-top: 16px;
+}
+
+.token-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: relative;
+  overflow: hidden;
+}
+
+.token-card.ready-glow {
+  border-color: var(--accent-emerald);
+  box-shadow: 0 0 25px rgba(16, 185, 129, 0.25);
+  animation: pulseReady 2s infinite ease-in-out;
+}
+
+@keyframes pulseReady {
+  0%, 100% { box-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
+  50% { box-shadow: 0 0 30px rgba(16, 185, 129, 0.45); }
+}
+
+.token-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.token-num {
+  font-family: var(--font-mono);
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--primary-gold);
+  letter-spacing: 1px;
+}
+
+.token-status-pill {
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.token-status-pill.placed {
+  background: rgba(245, 158, 11, 0.15);
+  color: #F59E0B;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+.token-status-pill.kitchen-preparing {
+  background: rgba(6, 182, 212, 0.15);
+  color: #06B6D4;
+  border: 1px solid rgba(6, 182, 212, 0.3);
+}
+.token-status-pill.ready-at-counter {
+  background: rgba(16, 185, 129, 0.18);
+  color: #10B981;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+.token-status-pill.completed {
+  background: rgba(148, 163, 184, 0.15);
+  color: #94A3B8;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.token-items-list {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  border-top: 1px solid var(--border-glass);
+  padding-top: 10px;
+}
+
+/* --------------------------------------------------------------------------
+   Shop Owner Portal Styles
+   -------------------------------------------------------------------------- */
+.owner-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  margin-bottom: 28px;
+}
+
+.owner-stall-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.owner-stall-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, #FF9F1C, #FF5722);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+}
+
+/* Switch Component */
+.toggle-switch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle-track {
+  width: 48px;
+  height: 26px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-full);
+  position: relative;
+  transition: background-color var(--transition-fast);
+}
+
+.toggle-track.active {
+  background-color: var(--accent-emerald);
+}
+
+.toggle-thumb {
+  width: 20px;
+  height: 20px;
+  background-color: #FFFFFF;
+  border-radius: 50%;
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  transition: transform var(--transition-bounce);
+}
+
+.toggle-track.active .toggle-thumb {
+  transform: translateX(22px);
+}
+
+/* Orders Kanban */
+.orders-pipeline {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  margin-bottom: 36px;
+}
+
+.pipeline-col {
+  background: rgba(18, 24, 38, 0.6);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.pipeline-col-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-glass);
+}
+
+.pipeline-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pipeline-count {
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.pipeline-orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex-grow: 1;
+  min-height: 120px;
+}
+
+/* Order Item in Owner view */
+.owner-order-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.owner-order-card:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+/* --------------------------------------------------------------------------
+   Super Admin Portal: Outlets & Add Shop Wizard
+   -------------------------------------------------------------------------- */
+.admin-card-section {
+  background: var(--bg-card);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-xl);
+  padding: 32px;
+  margin-bottom: 32px;
+}
+
+.admin-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-glass);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* Add Shop Form Grid */
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.form-input, .form-select {
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  color: #FFFFFF;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  outline: none;
+  transition: all var(--transition-fast);
+}
+
+.form-input:focus, .form-select:focus {
+  border-color: var(--primary-gold);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 14px rgba(255, 159, 28, 0.2);
+}
+
+.form-select option {
+  background-color: var(--bg-surface);
+  color: #FFFFFF;
+}
+
+/* Shop Provisioned Success Credential Card */
+.credentials-receipt {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
+  border: 1px dashed var(--primary-gold);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cred-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+}
+
+/* Admin Shops Management Table */
+.stalls-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.stalls-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.stalls-table th {
+  padding: 14px 18px;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border-glass);
+}
+
+.stalls-table td {
+  padding: 16px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  font-size: 0.92rem;
+}
+
+.stalls-table tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* --------------------------------------------------------------------------
+   Auth & Login Switcher Modal Styles
+   -------------------------------------------------------------------------- */
+.role-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 24px;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 6px;
+  border-radius: var(--radius-md);
+}
+
+.role-tab-btn {
+  padding: 10px 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-brand);
+  font-size: 0.88rem;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.role-tab-btn.active {
+  background: var(--bg-surface);
+  color: var(--primary-gold);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.demo-credentials-pill {
+  background: rgba(255, 159, 28, 0.1);
+  border: 1px solid rgba(255, 159, 28, 0.25);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.demo-cred-btn {
+  background: var(--primary-gold);
+  color: #0A0E17;
+  border: none;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform var(--transition-fast);
+}
+
+.demo-cred-btn:hover {
+  transform: scale(1.05);
+}
