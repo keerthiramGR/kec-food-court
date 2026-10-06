@@ -4,6 +4,10 @@ let ownerMenuSearchQuery = '';
 let ownerMenuCategoryFilter = 'all';
 let ownerMenuDietFilter = 'all';
 
+let showBusinessAnalytics = false;
+let purchaseSearchQuery = '';
+let purchaseStatusFilter = 'all';
+
 function escapeHtml(str) {
   if (str === null || str === undefined) return '';
   return String(str)
@@ -13,6 +17,350 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
+// ---------------------------------------------------------------------------
+// 1. Audio Bell Chime Synthesizer (Zero External Dependencies)
+// ---------------------------------------------------------------------------
+export function playOrderAlertSound() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const notes = [659.25, 880, 1174.66, 1318.51]; // E5, A5, D6, E6 harmonic chime
+    notes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.12);
+      gain.gain.setValueAtTime(0.35, ctx.currentTime + idx * 0.12);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.12 + 0.6);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + idx * 0.12);
+      osc.stop(ctx.currentTime + idx * 0.12 + 0.65);
+    });
+  } catch (e) {
+    console.warn('Audio chime notice:', e);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 2. Incoming Order Pop-up Notification Modal
+// ---------------------------------------------------------------------------
+export function showIncomingOrderPopup(order, showToast, renderApp) {
+  playOrderAlertSound();
+
+  let modal = document.getElementById('owner-order-alert-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'owner-order-alert-modal';
+    modal.className = 'modal-overlay';
+    document.body.appendChild(modal);
+  }
+
+  const itemsListHtml = (order.items || []).map(i => `
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px dashed rgba(255,255,255,0.08);">
+      <span><strong style="color: var(--primary-gold);">${i.qty}x</strong> ${escapeHtml(i.name)}</span>
+      <span style="font-weight: 700; color: #FFF;">₹${(i.price || 0) * (i.qty || 1)}</span>
+    </div>
+  `).join('');
+
+  modal.innerHTML = `
+    <div class="modal-box order-alert-box" style="max-width: 480px; text-align: center; border-radius: var(--radius-lg); padding: 26px;">
+      <div style="font-size: 3.2rem; margin-bottom: 2px; display: inline-block; animation: ringBell 0.9s ease infinite alternate;">🔔</div>
+      <div style="margin-bottom: 8px;">
+        <span class="badge badge-gold" style="font-size: 0.8rem; padding: 4px 14px; letter-spacing: 1px; font-weight: 800;">
+          NEW ORDER INCOMING!
+        </span>
+      </div>
+
+      <div style="font-size: 2.2rem; font-weight: 900; color: var(--primary-gold); font-family: var(--font-mono); line-height: 1.1; margin-bottom: 4px;">
+        ${order.tokenNumber}
+      </div>
+      <div style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 16px;">
+        Order #${order.id} • <span class="badge badge-emerald" style="font-size: 0.72rem;">${order.diningType || 'Dine-In'}</span>
+      </div>
+
+      <div style="background: rgba(0,0,0,0.35); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 20px; border: 1px solid var(--border-glass); text-align: left;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.86rem;">
+          <span style="color: var(--text-secondary);">Student:</span>
+          <strong style="color: #FFF;">${escapeHtml(order.studentName || 'Student')} (${escapeHtml(order.studentRoll || 'Campus')})</strong>
+        </div>
+
+        <div style="font-size: 0.76rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 6px;">
+          Ordered Food Dishes:
+        </div>
+        <div style="margin-bottom: 12px;">
+          ${itemsListHtml}
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid var(--border-glass); font-size: 1.15rem; font-weight: 800;">
+          <span style="color: #FFF;">Total Amount:</span>
+          <span style="color: var(--primary-gold);">₹${order.totalAmount}</span>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 12px;">
+        <button class="btn btn-primary btn-lg" id="btn-popup-start-cooking" style="flex: 1; font-weight: 800;">
+          🔥 Accept & Start Cooking
+        </button>
+        <button class="btn btn-secondary btn-lg" id="btn-popup-dismiss" style="min-width: 100px;">
+          Dismiss
+        </button>
+      </div>
+    </div>
+  `;
+
+  modal.classList.add('open');
+
+  const startBtn = modal.querySelector('#btn-popup-start-cooking');
+  if (startBtn) {
+    startBtn.addEventListener('click', () => {
+      state.updateOrderStatus(order.id, 'Kitchen Preparing');
+      modal.classList.remove('open');
+      if (showToast) showToast(`Token ${order.tokenNumber} moved to Kitchen Preparing!`, 'success');
+      if (renderApp) renderApp();
+    });
+  }
+
+  const dismissBtn = modal.querySelector('#btn-popup-dismiss');
+  if (dismissBtn) {
+    dismissBtn.addEventListener('click', () => {
+      modal.classList.remove('open');
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 3. SVG Sales Graph Generator (Hourly Curve)
+// ---------------------------------------------------------------------------
+function generateSalesChartSvg(hourlyData) {
+  const width = 560;
+  const height = 180;
+  const paddingX = 40;
+  const paddingY = 25;
+
+  const maxVal = Math.max(...hourlyData.map(d => d.revenue), 100);
+  const points = hourlyData.map((d, i) => {
+    const x = paddingX + (i * ((width - 2 * paddingX) / (hourlyData.length - 1)));
+    const y = (height - paddingY) - ((d.revenue / maxVal) * (height - 2 * paddingY));
+    return { x, y, ...d };
+  });
+
+  // Construct smooth curve path
+  let pathD = `M ${points[0].x},${points[0].y}`;
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[i];
+    const p1 = points[i + 1];
+    const cx = (p0.x + p1.x) / 2;
+    pathD += ` C ${cx},${p0.y} ${cx},${p1.y} ${p1.x},${p1.y}`;
+  }
+
+  const areaD = `${pathD} L ${points[points.length - 1].x},${height - paddingY} L ${points[0].x},${height - paddingY} Z`;
+
+  return `
+    <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="salesGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#FF9F1C" stop-opacity="0.45" />
+          <stop offset="100%" stop-color="#FF9F1C" stop-opacity="0.0" />
+        </linearGradient>
+      </defs>
+
+      <!-- Grid lines -->
+      <line x1="${paddingX}" y1="${paddingY}" x2="${width - paddingX}" y2="${paddingY}" stroke="rgba(255,255,255,0.08)" stroke-dasharray="4" />
+      <line x1="${paddingX}" y1="${height / 2}" x2="${width - paddingX}" y2="${height / 2}" stroke="rgba(255,255,255,0.08)" stroke-dasharray="4" />
+      <line x1="${paddingX}" y1="${height - paddingY}" x2="${width - paddingX}" y2="${height - paddingY}" stroke="rgba(255,255,255,0.15)" />
+
+      <!-- Area fill -->
+      <path d="${areaD}" fill="url(#salesGrad)" />
+
+      <!-- Curve Line -->
+      <path d="${pathD}" fill="none" stroke="#FF9F1C" stroke-width="3" stroke-linecap="round" />
+
+      <!-- Data Dots & Value Labels -->
+      ${points.map(p => `
+        <circle cx="${p.x}" cy="${p.y}" r="4.5" fill="#FFFFFF" stroke="#FF9F1C" stroke-width="2.5" />
+        ${p.revenue > 0 ? `
+          <text x="${p.x}" y="${p.y - 10}" fill="#FF9F1C" font-size="10" font-weight="800" text-anchor="middle" font-family="sans-serif">₹${p.revenue}</text>
+        ` : ''}
+        <text x="${p.x}" y="${height - 6}" fill="rgba(255,255,255,0.6)" font-size="10" text-anchor="middle" font-family="sans-serif">${p.time}</text>
+      `).join('')}
+    </svg>
+  `;
+}
+
+// ---------------------------------------------------------------------------
+// 4. Export Orders to Excel / CSV
+// ---------------------------------------------------------------------------
+export function exportOrdersToExcel(currentShop, shopOrders) {
+  const headers = [
+    "Date", "Time", "Order ID", "Token Number", "Customer Name", "Roll Number", "Phone Number",
+    "Ordered Food Dishes", "Total Quantity", "Dining Type", "Amount (INR)", "Payment Method", "Status"
+  ];
+
+  const rows = shopOrders.map(order => {
+    const d = order.createdTime ? new Date(order.createdTime) : new Date();
+    const dateStr = d.toLocaleDateString('en-IN');
+    const timeStr = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const itemsStr = (order.items || []).map(i => `${i.qty}x ${i.name}`).join('; ');
+    const totalQty = (order.items || []).reduce((sum, i) => sum + (i.qty || 1), 0);
+
+    return [
+      `"${dateStr}"`,
+      `"${timeStr}"`,
+      `"${order.id}"`,
+      `"${order.tokenNumber}"`,
+      `"${(order.studentName || 'Student').replace(/"/g, '""')}"`,
+      `"${(order.studentRoll || 'Campus').replace(/"/g, '""')}"`,
+      `"${(order.studentPhone || '').replace(/"/g, '""')}"`,
+      `"${itemsStr.replace(/"/g, '""')}"`,
+      totalQty,
+      `"${order.diningType || 'Dine-In'}"`,
+      order.totalAmount || 0,
+      `"${order.paymentMethod || 'Paid Online'}"`,
+      `"${order.status || 'Completed'}"`
+    ].join(',');
+  });
+
+  const totalSum = shopOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+  const totalItemsCount = shopOrders.reduce((sum, o) => sum + (o.items || []).reduce((s, i) => s + (i.qty || 1), 0), 0);
+
+  const footer = `\n"TOTAL","","","","","","",,"${totalItemsCount}","",${totalSum},"",""`;
+  const csvContent = headers.join(',') + '\n' + rows.join('\n') + footer;
+
+  const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  const fileName = `KEC_FoodCourt_${currentShop.name.replace(/\s+/g, '_')}_Daily_Sales_${new Date().toISOString().split('T')[0]}.csv`;
+  link.setAttribute('download', fileName);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+// ---------------------------------------------------------------------------
+// 5. Printable Daily Sales & Settlement PDF Report
+// ---------------------------------------------------------------------------
+export function openPrintableDailyReport(currentShop, shopOrders) {
+  let modal = document.getElementById('printable-daily-report-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'printable-daily-report-modal';
+    modal.className = 'modal-overlay';
+    document.body.appendChild(modal);
+  }
+
+  const d = new Date();
+  const dateStr = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  const totalRevenue = shopOrders.filter(o => o.status !== 'Cancelled').reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+  const totalQty = shopOrders.reduce((sum, o) => sum + (o.items || []).reduce((s, i) => s + (i.qty || 1), 0), 0);
+
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width: 850px; max-height: 90vh; overflow-y: auto; background: #FFF; color: #111;">
+      <div id="printable-daily-report" style="padding: 24px;">
+        <!-- Header -->
+        <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #EA580C; padding-bottom: 14px; margin-bottom: 20px;">
+          <div>
+            <div style="font-size: 1.3rem; font-weight: 900; color: #1E293B;">KONGU ENGINEERING COLLEGE</div>
+            <div style="font-size: 1.05rem; font-weight: 700; color: #EA580C;">CAMPUS FOOD COURT • DAILY BUSINESS SETTLEMENT</div>
+            <div style="font-size: 0.82rem; color: #64748B;">Perundurai, Erode - 638 060, Tamil Nadu</div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-weight: 800; font-size: 1.1rem; color: #0F172A;">${escapeHtml(currentShop.name)} (${currentShop.stallNumber})</div>
+            <div style="font-size: 0.85rem; color: #475569;">Manager: <strong>${escapeHtml(currentShop.ownerName)}</strong></div>
+            <div style="font-size: 0.85rem; color: #64748B;">Report Date: <strong>${dateStr}</strong></div>
+          </div>
+        </div>
+
+        <!-- KPI Summary Cards -->
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px;">
+          <div style="background: #FFF7ED; border: 1px solid #FDBA74; padding: 12px; border-radius: 8px;">
+            <div style="font-size: 0.76rem; color: #C2410C; font-weight: 700;">TOTAL REVENUE</div>
+            <div style="font-size: 1.4rem; font-weight: 900; color: #9A3412;">₹${totalRevenue}</div>
+          </div>
+          <div style="background: #F0FDF4; border: 1px solid #86EFAC; padding: 12px; border-radius: 8px;">
+            <div style="font-size: 0.76rem; color: #15803D; font-weight: 700;">TOTAL ORDERS</div>
+            <div style="font-size: 1.4rem; font-weight: 900; color: #166534;">${shopOrders.length}</div>
+          </div>
+          <div style="background: #EFF6FF; border: 1px solid #93C5FD; padding: 12px; border-radius: 8px;">
+            <div style="font-size: 0.76rem; color: #1D4ED8; font-weight: 700;">TOTAL DISHES SOLD</div>
+            <div style="font-size: 1.4rem; font-weight: 900; color: #1E40AF;">${totalQty} items</div>
+          </div>
+          <div style="background: #FAF5FF; border: 1px solid #D8B4FE; padding: 12px; border-radius: 8px;">
+            <div style="font-size: 0.76rem; color: #7E22CE; font-weight: 700;">AVG BASKET SIZE</div>
+            <div style="font-size: 1.4rem; font-weight: 900; color: #6B21A8;">₹${shopOrders.length > 0 ? Math.round(totalRevenue / shopOrders.length) : 0}</div>
+          </div>
+        </div>
+
+        <!-- Transactions Table -->
+        <h3 style="font-size: 1.05rem; font-weight: 800; color: #1E293B; margin-bottom: 8px; border-bottom: 1px solid #E2E8F0; padding-bottom: 6px;">
+          Itemized Purchase & Settlement Register
+        </h3>
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-bottom: 24px;">
+          <thead>
+            <tr style="background: #F1F5F9; border-bottom: 2px solid #CBD5E1;">
+              <th style="padding: 8px; text-align: left;">Time</th>
+              <th style="padding: 8px; text-align: left;">Token</th>
+              <th style="padding: 8px; text-align: left;">Customer</th>
+              <th style="padding: 8px; text-align: left;">Food Dishes Ordered</th>
+              <th style="padding: 8px; text-align: center;">Dining</th>
+              <th style="padding: 8px; text-align: right;">Amount</th>
+              <th style="padding: 8px; text-align: center;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${shopOrders.map(o => {
+              const dTime = o.createdTime ? new Date(o.createdTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : 'Today';
+              return `
+                <tr style="border-bottom: 1px solid #E2E8F0;">
+                  <td style="padding: 8px; color: #64748B;">${dTime}</td>
+                  <td style="padding: 8px; font-weight: 800; color: #EA580C;">${o.tokenNumber}</td>
+                  <td style="padding: 8px;">${escapeHtml(o.studentName || 'Student')} <span style="color: #64748B; font-size: 0.78rem;">(${escapeHtml(o.studentRoll || 'Campus')})</span></td>
+                  <td style="padding: 8px; font-weight: 600;">${(o.items || []).map(i => `${i.qty}x ${escapeHtml(i.name)}`).join(', ')}</td>
+                  <td style="padding: 8px; text-align: center;">${o.diningType || 'Dine-In'}</td>
+                  <td style="padding: 8px; text-align: right; font-weight: 800;">₹${o.totalAmount}</td>
+                  <td style="padding: 8px; text-align: center;">${o.status}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+
+        <!-- Signatures block -->
+        <div style="display: flex; justify-content: space-between; margin-top: 40px; padding-top: 20px; border-top: 1px dashed #CBD5E1;">
+          <div style="text-align: center;">
+            <div style="height: 36px;"></div>
+            <div style="border-top: 1px solid #94A3B8; width: 180px; padding-top: 4px; font-size: 0.8rem; font-weight: 700; color: #475569;">Stall Manager Signature</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="height: 36px; display: flex; align-items: center; justify-content: center; color: #16A34A; font-weight: 800; font-size: 0.82rem;">VERIFIED CAMPUS DINING</div>
+            <div style="border-top: 1px solid #94A3B8; width: 180px; padding-top: 4px; font-size: 0.8rem; font-weight: 700; color: #475569;">Campus Food Court Authority</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="no-print" style="display: flex; gap: 12px; padding: 16px; border-top: 1px solid #E2E8F0; background: #F8FAFC; justify-content: flex-end;">
+        <button class="btn btn-primary" id="btn-trigger-print">🖨️ Print / Save as PDF</button>
+        <button class="btn btn-secondary" id="btn-close-print-modal">Close</button>
+      </div>
+    </div>
+  `;
+
+  modal.classList.add('open');
+
+  modal.querySelector('#btn-trigger-print')?.addEventListener('click', () => {
+    window.print();
+  });
+  modal.querySelector('#btn-close-print-modal')?.addEventListener('click', () => {
+    modal.classList.remove('open');
+  });
+}
+
+// ---------------------------------------------------------------------------
+// 6. Master Owner Portal View
+// ---------------------------------------------------------------------------
 export function renderOwnerPortal(container, showToast, renderApp) {
   const currentUser = state.getCurrentUser();
   const shops = state.getShops();
@@ -39,6 +387,24 @@ export function renderOwnerPortal(container, showToast, renderApp) {
     return;
   }
 
+  // Bind active shop ID globally for live alert listener
+  window._activeOwnerShopId = currentShop.id;
+  window._ownerShowToast = showToast;
+  window._ownerRenderApp = renderApp;
+
+  // Subscribe to live incoming orders (once)
+  if (!window._ownerOrderAlertSubscribed) {
+    window._ownerOrderAlertSubscribed = true;
+    state.subscribe((event, data) => {
+      if (event === 'ORDER_CREATED') {
+        if (data && data.shopId === window._activeOwnerShopId) {
+          showIncomingOrderPopup(data, window._ownerShowToast, window._ownerRenderApp);
+          if (window._ownerRenderApp) window._ownerRenderApp();
+        }
+      }
+    });
+  }
+
   const allOrders = state.getOrders();
   const shopOrders = allOrders.filter(o => o.shopId === currentShop.id);
 
@@ -52,6 +418,85 @@ export function renderOwnerPortal(container, showToast, renderApp) {
     .reduce((sum, o) => sum + (o.totalAmount || 0), 0);
 
   const menuCategories = ['all', ...Array.from(new Set((currentShop.menu || []).map(d => d.category).filter(Boolean)))];
+
+  // Prepare Hourly Revenue Timeline Data for Graph
+  const hourlySlots = ['8 AM', '10 AM', '12 PM', '2 PM', '4 PM', '6 PM', '8 PM', '10 PM'];
+  const hourlyMap = {
+    '8 AM': { revenue: 0, count: 0 },
+    '10 AM': { revenue: 0, count: 0 },
+    '12 PM': { revenue: 0, count: 0 },
+    '2 PM': { revenue: 0, count: 0 },
+    '4 PM': { revenue: 0, count: 0 },
+    '6 PM': { revenue: 0, count: 0 },
+    '8 PM': { revenue: 0, count: 0 },
+    '10 PM': { revenue: 0, count: 0 }
+  };
+
+  shopOrders.forEach(o => {
+    if (o.status !== 'Cancelled') {
+      const d = o.createdTime ? new Date(o.createdTime) : new Date();
+      const hr = d.getHours();
+      let slot = '8 AM';
+      if (hr >= 21) slot = '10 PM';
+      else if (hr >= 19) slot = '8 PM';
+      else if (hr >= 17) slot = '6 PM';
+      else if (hr >= 15) slot = '4 PM';
+      else if (hr >= 13) slot = '2 PM';
+      else if (hr >= 11) slot = '12 PM';
+      else if (hr >= 9) slot = '10 AM';
+      else slot = '8 AM';
+
+      hourlyMap[slot].revenue += (o.totalAmount || 0);
+      hourlyMap[slot].count += 1;
+    }
+  });
+
+  const hourlyChartData = hourlySlots.map(time => ({
+    time,
+    revenue: hourlyMap[time].revenue,
+    count: hourlyMap[time].count
+  }));
+
+  const salesSvgHtml = generateSalesChartSvg(hourlyChartData);
+
+  // Prepare Best-Selling Dishes for Progress Bars
+  const dishSalesMap = {};
+  shopOrders.forEach(o => {
+    if (o.status !== 'Cancelled' && Array.isArray(o.items)) {
+      o.items.forEach(i => {
+        dishSalesMap[i.name] = (dishSalesMap[i.name] || 0) + (i.qty || 1);
+      });
+    }
+  });
+
+  const totalDishesSold = Object.values(dishSalesMap).reduce((s, c) => s + c, 0) || 1;
+  const topDishes = Object.entries(dishSalesMap)
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+
+  const topDishesHtml = topDishes.length === 0 ? `
+    <div style="color: var(--text-muted); font-size: 0.85rem; padding: 20px 0; text-align: center;">
+      No dish orders recorded today yet.
+    </div>
+  ` : topDishes.map(d => {
+    const pct = Math.round((d.count / totalDishesSold) * 100);
+    return `
+      <div class="dish-progress-item">
+        <div class="dish-progress-label">
+          <span style="font-weight: 700; color: #FFF;">${escapeHtml(d.name)}</span>
+          <span style="color: var(--primary-gold); font-weight: 800;">${d.count} sold (${pct}%)</span>
+        </div>
+        <div class="dish-progress-track">
+          <div class="dish-progress-fill" style="width: ${pct}%;"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // If shop is closed, automatically show analytics dashboard
+  const isStallClosed = !currentShop.isOpen;
+  const isAnalyticsVisible = isStallClosed || showBusinessAnalytics;
 
   container.innerHTML = `
     <!-- Shop Owner Portal Header -->
@@ -71,8 +516,8 @@ export function renderOwnerPortal(container, showToast, renderApp) {
         </div>
       </div>
 
-      <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
-        <!-- Switch Stall Selector if multi-stall preview -->
+      <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+        <!-- Switch Stall Selector -->
         <select id="owner-shop-switcher" class="form-select" style="padding: 8px 14px; font-size: 0.85rem; background: rgba(255,255,255,0.06);">
           ${shops.map(s => `
             <option value="${s.id}" ${s.id === currentShop.id ? 'selected' : ''}>
@@ -80,6 +525,11 @@ export function renderOwnerPortal(container, showToast, renderApp) {
             </option>
           `).join('')}
         </select>
+
+        <!-- Toggle Business Analytics Button -->
+        <button class="btn btn-outline-gold btn-sm" id="btn-toggle-business-analytics" title="View Today's Business Graph & Reports">
+          <span>📊</span> ${isAnalyticsVisible && !isStallClosed ? 'Hide Analytics' : "Business Graph & Reports"}
+        </button>
 
         <!-- Live Stall Open/Close Toggle -->
         <div class="toggle-switch" id="toggle-stall-open-status" title="Toggle Stall Open / Closed">
@@ -134,6 +584,180 @@ export function renderOwnerPortal(container, showToast, renderApp) {
         </div>
       </div>
     </div>
+
+    <!-- =========================================================================
+         DAILY BUSINESS ANALYTICS & PURCHASE RECONCILIATION SECTION
+         (Shown whenever shop is closed, or toggled on demand)
+         ========================================================================= -->
+    ${isAnalyticsVisible ? `
+      <div class="business-analytics-panel" id="business-analytics-panel">
+        ${isStallClosed ? `
+          <!-- Closed Stall End-of-Day Banner -->
+          <div style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.05) 100%); border: 1.5px solid rgba(239, 68, 68, 0.4); border-radius: var(--radius-lg); padding: 18px 24px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <div style="font-size: 2.2rem;">🌙</div>
+              <div>
+                <div style="font-weight: 800; font-size: 1.15rem; color: #FFF;">Stall is Closed for Today • End-of-Day Business Summary</div>
+                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 2px;">
+                  All business metrics, sales graph, and detailed transaction logs of today are compiled below.
+                </div>
+              </div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+              <button class="btn btn-emerald btn-sm" id="btn-export-excel-banner">
+                <span>📥</span> Download Excel (.csv)
+              </button>
+              <button class="btn btn-primary btn-sm" id="btn-export-pdf-banner">
+                <span>🖨️</span> Download PDF
+              </button>
+            </div>
+          </div>
+        ` : ''}
+
+        <div class="analytics-header">
+          <div>
+            <h2 style="font-size: 1.35rem; color: #FFF; display: flex; align-items: center; gap: 8px;">
+              <span>📊</span> Today's Business Performance & Graph
+            </h2>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 2px;">
+              Visual hourly sales curve, top selling delicacies, and complete purchase audit table
+            </p>
+          </div>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <button class="btn btn-emerald btn-sm" id="btn-export-excel">
+              <span>📥</span> Download Excel (.csv)
+            </button>
+            <button class="btn btn-primary btn-sm" id="btn-export-pdf">
+              <span>🖨️</span> Download PDF
+            </button>
+          </div>
+        </div>
+
+        <!-- 2-Column Visual Charts: Hourly Sales Curve + Top Dishes Progress -->
+        <div class="analytics-grid-2">
+          <!-- Left: Hourly Sales SVG Curve Graph -->
+          <div class="analytics-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <div>
+                <span style="font-weight: 800; font-size: 0.95rem; color: #FFF;">📈 Hourly Sales & Revenue Curve</span>
+                <div style="font-size: 0.78rem; color: var(--text-secondary);">Revenue flow across operating hours</div>
+              </div>
+              <span class="badge badge-gold">₹${totalRevenue} Total</span>
+            </div>
+            <div class="chart-svg-container">
+              ${salesSvgHtml}
+            </div>
+          </div>
+
+          <!-- Right: Best Selling Dishes Progress Bars -->
+          <div class="analytics-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+              <div>
+                <span style="font-weight: 800; font-size: 0.95rem; color: #FFF;">🥇 Best-Selling Delicacies</span>
+                <div style="font-size: 0.78rem; color: var(--text-secondary);">By units sold today</div>
+              </div>
+              <span class="badge badge-emerald">${totalDishesSold} items</span>
+            </div>
+            <div>
+              ${topDishesHtml}
+            </div>
+          </div>
+        </div>
+
+        <!-- Detailed Purchase Register Table -->
+        <div style="margin-top: 24px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 12px;">
+            <div>
+              <h3 style="font-size: 1.1rem; color: #FFF; display: flex; align-items: center; gap: 8px;">
+                <span>📋</span> All Details of Purchase & Transactions (${shopOrders.length})
+              </h3>
+              <p style="font-size: 0.82rem; color: var(--text-secondary);">Itemized register of all tokens, students, ordered dishes, and billing</p>
+            </div>
+
+            <!-- Toolbar: Search & Status Filter -->
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+              <input type="text" id="purchase-table-search" class="form-input" 
+                     placeholder="Search customer, token, dish..." 
+                     value="${escapeHtml(purchaseSearchQuery)}"
+                     style="padding: 6px 12px; font-size: 0.84rem; min-width: 200px;" />
+
+              <select id="purchase-table-status" class="form-select" style="padding: 6px 10px; font-size: 0.84rem;">
+                <option value="all" ${purchaseStatusFilter === 'all' ? 'selected' : ''}>All Statuses</option>
+                <option value="Completed" ${purchaseStatusFilter === 'Completed' ? 'selected' : ''}>✅ Completed</option>
+                <option value="Kitchen Preparing" ${purchaseStatusFilter === 'Kitchen Preparing' ? 'selected' : ''}>🔥 Preparing</option>
+                <option value="Placed" ${purchaseStatusFilter === 'Placed' ? 'selected' : ''}>📥 In Queue</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="purchases-table-wrap">
+            <table class="purchases-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Order ID</th>
+                  <th>Token</th>
+                  <th>Customer (Student)</th>
+                  <th>Food Dishes Ordered</th>
+                  <th style="text-align: center;">Dining</th>
+                  <th style="text-align: right;">Amount</th>
+                  <th style="text-align: center;">Status</th>
+                </tr>
+              </thead>
+              <tbody id="purchase-table-tbody">
+                ${shopOrders.length === 0 ? `
+                  <tr>
+                    <td colspan="8" style="text-align: center; padding: 30px; color: var(--text-secondary);">
+                      No purchases recorded today for this stall.
+                    </td>
+                  </tr>
+                ` : shopOrders.map(order => {
+                  const d = order.createdTime ? new Date(order.createdTime) : new Date();
+                  const timeStr = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+                  const dishesStr = (order.items || []).map(i => `${i.qty}x ${i.name}`).join(', ');
+
+                  return `
+                    <tr class="purchase-row" 
+                        data-customer="${escapeHtml((order.studentName || '') + ' ' + (order.studentRoll || ''))}"
+                        data-dishes="${escapeHtml(dishesStr)}"
+                        data-token="${escapeHtml(order.tokenNumber || '')}"
+                        data-status="${escapeHtml(order.status || '')}">
+                      <td style="color: var(--text-secondary);">${timeStr}</td>
+                      <td style="font-family: var(--font-mono); font-weight: 700; color: #FFF;">#${order.id}</td>
+                      <td>
+                        <span style="font-family: var(--font-mono); font-weight: 800; color: var(--primary-gold); font-size: 1rem;">
+                          ${order.tokenNumber}
+                        </span>
+                      </td>
+                      <td>
+                        <div style="font-weight: 700; color: #FFF;">${escapeHtml(order.studentName || 'Student')}</div>
+                        <div style="font-size: 0.76rem; color: var(--text-muted);">${escapeHtml(order.studentRoll || 'Campus')}</div>
+                      </td>
+                      <td style="font-weight: 600; color: #FFFFFF;">
+                        ${(order.items || []).map(i => `<span style="display: inline-block; background: rgba(255,255,255,0.06); padding: 2px 7px; border-radius: 4px; margin: 2px 4px 2px 0;"><strong style="color: var(--primary-gold);">${i.qty}x</strong> ${escapeHtml(i.name)}</span>`).join('')}
+                      </td>
+                      <td style="text-align: center;">
+                        <span class="badge ${order.diningType === 'Takeaway' ? 'badge-gold' : 'badge-emerald'}" style="font-size: 0.7rem;">
+                          ${order.diningType || 'Dine-In'}
+                        </span>
+                      </td>
+                      <td style="text-align: right; font-weight: 800; color: var(--primary-gold); font-size: 1rem;">
+                        ₹${order.totalAmount}
+                      </td>
+                      <td style="text-align: center;">
+                        <span class="badge ${order.status === 'Completed' ? 'badge-emerald' : order.status === 'Kitchen Preparing' ? 'badge-cyan' : 'badge-gold'}" style="font-size: 0.72rem;">
+                          ${order.status}
+                        </span>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    ` : ''}
 
     <!-- Live Orders Pipeline / Kanban -->
     <div style="margin-bottom: 36px;">
@@ -429,11 +1053,74 @@ export function renderOwnerPortal(container, showToast, renderApp) {
     });
   }
 
+  // 1b. Toggle Business Analytics & Reports
+  const toggleAnalyticsBtn = document.getElementById('btn-toggle-business-analytics');
+  if (toggleAnalyticsBtn) {
+    toggleAnalyticsBtn.addEventListener('click', () => {
+      showBusinessAnalytics = !showBusinessAnalytics;
+      renderApp();
+    });
+  }
+
+  // 1c. Excel (.csv) Export
+  const excelBtns = container.querySelectorAll('#btn-export-excel, #btn-export-excel-banner');
+  excelBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      exportOrdersToExcel(currentShop, shopOrders);
+      showToast(`Downloading Excel report for ${currentShop.name}...`, 'success');
+    });
+  });
+
+  // 1d. PDF Export / Printable Report Modal
+  const pdfBtns = container.querySelectorAll('#btn-export-pdf, #btn-export-pdf-banner');
+  pdfBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      openPrintableDailyReport(currentShop, shopOrders);
+    });
+  });
+
+  // 1e. Purchase Details Table Filter & Search
+  function applyPurchaseFilters() {
+    const pSearch = document.getElementById('purchase-table-search');
+    const pStatus = document.getElementById('purchase-table-status');
+
+    const q = (pSearch ? pSearch.value : '').toLowerCase().trim();
+    const st = pStatus ? pStatus.value : 'all';
+
+    purchaseSearchQuery = q;
+    purchaseStatusFilter = st;
+
+    const rows = container.querySelectorAll('.purchase-row');
+    rows.forEach(row => {
+      const customer = (row.dataset.customer || '').toLowerCase();
+      const dishes = (row.dataset.dishes || '').toLowerCase();
+      const token = (row.dataset.token || '').toLowerCase();
+      const status = row.dataset.status || '';
+
+      const matchesQuery = !q || customer.includes(q) || dishes.includes(q) || token.includes(q);
+      const matchesStatus = st === 'all' || status === st;
+
+      if (matchesQuery && matchesStatus) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    });
+  }
+
+  const pSearchIn = document.getElementById('purchase-table-search');
+  const pStatusSel = document.getElementById('purchase-table-status');
+  if (pSearchIn) pSearchIn.addEventListener('input', applyPurchaseFilters);
+  if (pStatusSel) pStatusSel.addEventListener('change', applyPurchaseFilters);
+
   // 2. Toggle Open/Closed
   const toggleStallOpen = document.getElementById('toggle-stall-open-status');
   if (toggleStallOpen) {
     toggleStallOpen.addEventListener('click', () => {
       const newStatus = !currentShop.isOpen;
+      if (!newStatus) {
+        showBusinessAnalytics = true; // Auto-reveal analytics dashboard when stall is closed
+      }
       state.updateShop(currentShop.id, { isOpen: newStatus });
       showToast(`${currentShop.name} is now ${newStatus ? 'OPEN' : 'CLOSED'}`, newStatus ? 'success' : 'info');
       renderApp();
