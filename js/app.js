@@ -4,7 +4,7 @@ import { initAuth } from './auth.js';
 import { renderStudentPortal, updateCartBadge } from './student.js';
 import { renderOwnerPortal } from './owner.js';
 import { renderAdminPortal } from './admin.js';
-import { openOrderBillModal } from './bill.js';
+import { openPaymentModal } from './payment.js';
 
 let activePortal = 'student'; // 'student' | 'owner' | 'admin'
 
@@ -192,7 +192,7 @@ function initCartModal() {
         </div>
 
         <button class="btn btn-primary btn-lg" style="width: 100%;" id="btn-confirm-checkout">
-          <span>🎟️</span> Confirm & Generate Live Token (₹${total})
+          <span>💳</span> Proceed to Pay with GPay (₹${total})
         </button>
       `;
 
@@ -212,16 +212,16 @@ function initCartModal() {
         });
       });
 
-      // Checkout Handler
+      // Checkout Handler: Triggers GPay Payment Gateway
       const checkoutBtn = document.getElementById('btn-confirm-checkout');
       if (checkoutBtn) {
         checkoutBtn.addEventListener('click', () => {
           const diningType = document.querySelector('input[name="order-type"]:checked')?.value || 'Dine-In';
           const currentUser = state.getCurrentUser();
-
-          // Create order
           const firstItem = cart[0];
-          const newOrder = state.createOrder({
+
+          // Prepare order parameters for payment verification
+          const orderParams = {
             studentName: currentUser ? currentUser.name : "Aravind Kumar",
             studentRoll: currentUser ? (currentUser.rollNo || "21EC108") : "21EC108",
             studentPhone: currentUser ? (currentUser.mobile || currentUser.phone || "98427 06474") : "98427 06474",
@@ -231,23 +231,15 @@ function initCartModal() {
             items: cart.map(c => ({ name: c.name, qty: c.qty, price: c.price })),
             totalAmount: total,
             diningType: diningType
-          });
+          };
 
-          // Clear cart
-          state.clearCart();
+          // Close cart modal
           cartModal.classList.remove('open');
-          updateCartBadge();
 
-          showToast(`Order Placed! Token: ${newOrder.tokenNumber}`, 'success');
-          
-          // Switch to student portal and refresh
-          activePortal = 'student';
-          renderApp();
-
-          // Display the Official Bill with unique QR code immediately
+          // Open Demo GPay UPI Payment Gateway
           setTimeout(() => {
-            openOrderBillModal(newOrder);
-          }, 350);
+            openPaymentModal(orderParams, showToast, renderApp);
+          }, 200);
         });
       }
     }

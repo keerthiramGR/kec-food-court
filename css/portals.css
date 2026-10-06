@@ -1400,3 +1400,263 @@ html:not(.dark) .bill-footer {
   }
 }
 
+/* --------------------------------------------------------------------------
+   Demo Google Pay UPI Payment Gateway & Success Modal Styles
+   -------------------------------------------------------------------------- */
+.payment-card {
+  padding: 4px;
+}
+
+.payment-header {
+  text-align: center;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-glass);
+  margin-bottom: 16px;
+}
+
+.gpay-brand-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.gpay-pill {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-full);
+  padding: 4px 14px;
+  font-size: 1.15rem;
+  letter-spacing: -0.5px;
+  display: flex;
+  align-items: center;
+}
+
+html:not(.dark) .gpay-pill {
+  background: #F1F5F9;
+  border-color: #E2E8F0;
+}
+
+.upi-logo-badge {
+  background: linear-gradient(135deg, #097938 0%, #004B23 100%);
+  color: #FFFFFF;
+  font-family: var(--font-brand);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.payment-amount-box {
+  background: linear-gradient(135deg, rgba(66, 133, 244, 0.12) 0%, rgba(52, 168, 83, 0.08) 100%);
+  border: 1px solid rgba(66, 133, 244, 0.3);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+.payment-amount-val {
+  font-family: var(--font-mono);
+  font-size: 2.4rem;
+  font-weight: 900;
+  color: #FFFFFF;
+  margin: 4px 0;
+  letter-spacing: -0.5px;
+}
+
+html:not(.dark) .payment-amount-val {
+  color: #0F172A;
+}
+
+/* GPay QR Card */
+.payment-qr-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.gpay-qr-card {
+  width: 204px;
+  height: 204px;
+  background: #FFFFFF;
+  border-radius: var(--radius-lg);
+  padding: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gpay-qr-inner {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gpay-qr-inner svg {
+  width: 100%;
+  height: 100%;
+}
+
+.gpay-corner-border {
+  position: absolute;
+  inset: 4px;
+  pointer-events: none;
+}
+
+.gpay-corner {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-style: solid;
+}
+
+.gpay-corner.top-left {
+  top: 0;
+  left: 0;
+  border-color: #4285F4;
+  border-width: 3px 0 0 3px;
+}
+
+.gpay-corner.top-right {
+  top: 0;
+  right: 0;
+  border-color: #EA4335;
+  border-width: 3px 3px 0 0;
+}
+
+.gpay-corner.bottom-left {
+  bottom: 0;
+  left: 0;
+  border-color: #FBBC05;
+  border-width: 0 0 3px 3px;
+}
+
+.gpay-corner.bottom-right {
+  bottom: 0;
+  right: 0;
+  border-color: #34A853;
+  border-width: 0 3px 3px 0;
+}
+
+.upi-id-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 5px 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px dashed var(--border-glass);
+  border-radius: var(--radius-full);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.upi-id-pill:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--primary-gold);
+}
+
+/* Order Summary */
+.payment-order-summary {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+}
+
+/* Button GPay */
+.btn-gpay {
+  background: linear-gradient(135deg, #1A73E8 0%, #1557B0 100%);
+  color: #FFFFFF;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  box-shadow: 0 6px 20px rgba(26, 115, 232, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-gpay:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(26, 115, 232, 0.55);
+  filter: brightness(1.08);
+}
+
+/* Processing Screen */
+.payment-processing-card {
+  text-align: center;
+  padding: 36px 16px;
+}
+
+.payment-spinner {
+  width: 64px;
+  height: 64px;
+  border: 4px solid rgba(66, 133, 244, 0.2);
+  border-top-color: #4285F4;
+  border-right-color: #34A853;
+  border-radius: 50%;
+  margin: 0 auto;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Success Screen */
+.payment-success-card {
+  text-align: center;
+  padding: 20px 8px;
+}
+
+.success-checkmark-circle {
+  width: 76px;
+  height: 76px;
+  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+  color: #FFFFFF;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  box-shadow: 0 0 30px rgba(16, 185, 129, 0.45);
+  animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+  0% { transform: scale(0.4); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.payment-receipt-meta {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.86rem;
+}
+
+.meta-row {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-secondary);
+}
+
+.meta-row span:last-child {
+  color: var(--text-main);
+}
+
+
