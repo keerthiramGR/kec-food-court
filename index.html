@@ -1,17 +1,56 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="KEC FOOD COURT - Smart Campus Dining & Outlets Portal for Kongu Engineering College. Real-time food ordering, stall management, and digital token tracking." />
   <title>KEC FOOD COURT | Smart Campus Dining & Stalls</title>
 
+  <!-- Immediate Theme Initializer (Prevents Flash of Unstyled Content) -->
+  <script>
+    (function() {
+      const saved = localStorage.getItem('kec_foodcourt_theme');
+      if (saved === 'light') {
+        document.documentElement.classList.remove('dark');
+      } else {
+        document.documentElement.classList.add('dark');
+      }
+    })();
+  </script>
+
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet" />
 
-  <!-- Stylesheets -->
+  <!-- Tailwind CSS v3 Engine with Custom Configuration -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              gold: '#FF9F1C',
+              amber: '#FFB703',
+              flame: '#FF5722',
+              dark: '#0A0E17',
+              surface: '#121826',
+              elevated: '#1A2234'
+            }
+          },
+          fontFamily: {
+            brand: ['Outfit', 'sans-serif'],
+            body: ['Plus Jakarta Sans', 'sans-serif'],
+            mono: ['Space Grotesk', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Custom Design Tokens, Splash & Portals Styles -->
   <link rel="stylesheet" href="css/main.css" />
   <link rel="stylesheet" href="css/splash.css" />
   <link rel="stylesheet" href="css/portals.css" />
@@ -36,7 +75,6 @@
       <!-- Animated SVG Logo Container -->
       <div class="splash-logo-container">
         <div class="splash-logo-wrap">
-          <!-- Inline Embedded Logo for Rich Keyframe Animation Control -->
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
             <defs>
               <linearGradient id="splashGoldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -200,11 +238,18 @@
         </button>
       </nav>
 
-      <!-- User Session Actions -->
+      <!-- User Session Actions & Theme Toggle -->
       <div class="nav-actions">
+        <!-- Light / Dark Mode Toggle Button -->
+        <button id="theme-toggle-btn" class="theme-toggle-btn" title="Toggle Light / Dark Mode">
+          <span class="theme-icon-sun">☀️</span>
+          <span class="theme-icon-moon">🌙</span>
+          <span id="theme-toggle-text" class="theme-text">Dark</span>
+        </button>
+
         <!-- Replay Splash Intro button -->
         <button class="btn btn-secondary btn-sm" onclick="window.replaySplashIntro()" title="Replay 3-4s Logo Intro Animation">
-          <span>✨</span> Replay Intro
+          <span>✨</span> Intro
         </button>
 
         <div id="nav-user-section">

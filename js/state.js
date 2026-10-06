@@ -105,6 +105,16 @@ class FoodCourtState {
     shops.push(newShop);
     this.saveShops(shops);
     this.notify('SHOP_CREATED', newShop);
+
+    // Sync with Node.js backend
+    try {
+      fetch('/api/shops', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newShop)
+      }).catch(e => console.warn('Backend sync notice:', e));
+    } catch {}
+
     return newShop;
   }
 
@@ -115,6 +125,16 @@ class FoodCourtState {
       shops[index] = { ...shops[index], ...updateData };
       this.saveShops(shops);
       this.notify('SHOP_UPDATED', shops[index]);
+
+      // Sync with Node.js backend
+      try {
+        fetch(`/api/shops/${shopId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updateData)
+        }).catch(e => console.warn('Backend sync notice:', e));
+      } catch {}
+
       return shops[index];
     }
     return null;
@@ -133,6 +153,16 @@ class FoodCourtState {
       shop.menu.push(newItem);
       this.saveShops(shops);
       this.notify('MENU_UPDATED', { shopId, item: newItem });
+
+      // Sync with Node.js backend
+      try {
+        fetch(`/api/shops/${shopId}/menu`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newItem)
+        }).catch(e => console.warn('Backend sync notice:', e));
+      } catch {}
+
       return newItem;
     }
     return null;
@@ -182,6 +212,16 @@ class FoodCourtState {
     orders.unshift(newOrder);
     this.saveOrders(orders);
     this.notify('ORDER_CREATED', newOrder);
+
+    // Sync with Node.js backend
+    try {
+      fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newOrder)
+      }).catch(e => console.warn('Backend sync notice:', e));
+    } catch {}
+
     return newOrder;
   }
 
@@ -192,6 +232,16 @@ class FoodCourtState {
       order.status = newStatus;
       this.saveOrders(orders);
       this.notify('ORDER_STATUS_CHANGED', order);
+
+      // Sync with Node.js backend
+      try {
+        fetch(`/api/orders/${orderId}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: newStatus })
+        }).catch(e => console.warn('Backend sync notice:', e));
+      } catch {}
+
       return order;
     }
     return null;

@@ -272,8 +272,34 @@ function initGlobalModals() {
   });
 }
 
+// Light / Dark Theme Manager
+export function initTheme() {
+  const toggleBtn = document.getElementById('theme-toggle-btn');
+  const themeText = document.getElementById('theme-toggle-text');
+
+  function updateThemeUI() {
+    const isDark = document.documentElement.classList.contains('dark');
+    if (themeText) {
+      themeText.textContent = isDark ? 'Dark' : 'Light';
+    }
+  }
+
+  // Initial UI sync
+  updateThemeUI();
+
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', () => {
+      const isDark = document.documentElement.classList.toggle('dark');
+      localStorage.setItem('kec_foodcourt_theme', isDark ? 'dark' : 'light');
+      updateThemeUI();
+      showToast(`Switched to ${isDark ? '🌙 Dark Mode' : '☀️ Light Mode'}`, 'info');
+    });
+  }
+}
+
 // Main Bootstrapping
 document.addEventListener('DOMContentLoaded', () => {
+  initTheme();
   initSplash();
   initAuth(showToast, renderApp);
   initCartModal();
@@ -298,3 +324,4 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initial render
   renderApp();
 });
+

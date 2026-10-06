@@ -1,5 +1,5 @@
 /* ==========================================================================
-   KEC FOOD COURT - PORTALS & INTERACTIVE VIEWS
+   KEC FOOD COURT - PORTALS & INTERACTIVE VIEWS (DUAL THEME COMPATIBLE)
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
@@ -10,10 +10,15 @@
   border-radius: var(--radius-xl);
   padding: 40px;
   margin-bottom: 32px;
-  background: linear-gradient(135deg, rgba(26, 34, 52, 0.9) 0%, rgba(14, 18, 27, 0.95) 100%);
+  background: linear-gradient(135deg, #FFFFFF 0%, #F1F5F9 100%);
   border: 1px solid var(--border-glass);
   box-shadow: var(--shadow-card);
   overflow: hidden;
+  transition: all var(--transition-normal);
+}
+
+html.dark .portal-hero {
+  background: linear-gradient(135deg, rgba(26, 34, 52, 0.9) 0%, rgba(14, 18, 27, 0.95) 100%);
 }
 
 .portal-hero::before {
@@ -53,6 +58,7 @@
   font-size: 2.5rem;
   margin-bottom: 12px;
   line-height: 1.15;
+  color: var(--text-main);
 }
 
 .portal-hero-desc {
@@ -79,6 +85,7 @@
   display: flex;
   align-items: center;
   gap: 16px;
+  box-shadow: var(--shadow-card);
   transition: transform var(--transition-normal), border-color var(--transition-normal);
 }
 
@@ -95,14 +102,14 @@
   align-items: center;
   justify-content: center;
   font-size: 1.5rem;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(148, 163, 184, 0.12);
 }
 
 .stat-value {
   font-size: 1.7rem;
   font-weight: 800;
   font-family: var(--font-brand);
-  color: #FFFFFF;
+  color: var(--text-main);
 }
 
 .stat-label {
@@ -135,7 +142,7 @@
 .filter-chip {
   padding: 8px 18px;
   border-radius: var(--radius-full);
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--bg-surface);
   border: 1px solid var(--border-glass);
   color: var(--text-secondary);
   font-size: 0.88rem;
@@ -147,9 +154,13 @@
 
 .filter-chip:hover, .filter-chip.active {
   background: var(--primary-gold);
-  color: #0A0E17;
+  color: #FFFFFF;
   border-color: var(--primary-gold);
   box-shadow: var(--glow-gold);
+}
+
+html.dark .filter-chip:hover, html.dark .filter-chip.active {
+  color: #0A0E17;
 }
 
 .search-input-wrap {
@@ -160,10 +171,10 @@
 .search-input-wrap input {
   width: 100%;
   padding: 10px 16px 10px 40px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--bg-surface);
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-full);
-  color: #FFFFFF;
+  color: var(--text-main);
   font-family: var(--font-body);
   font-size: 0.92rem;
   outline: none;
@@ -172,7 +183,6 @@
 
 .search-input-wrap input:focus {
   border-color: var(--primary-gold);
-  background: rgba(255, 255, 255, 0.08);
   box-shadow: 0 0 12px rgba(255, 159, 28, 0.25);
 }
 
@@ -203,11 +213,16 @@
   transition: all var(--transition-normal);
   cursor: pointer;
   position: relative;
+  box-shadow: var(--shadow-card);
 }
 
 .stall-card:hover {
   transform: translateY(-6px);
   border-color: rgba(255, 159, 28, 0.4);
+  box-shadow: 0 16px 36px -10px rgba(0, 0, 0, 0.15), var(--glow-gold);
+}
+
+html.dark .stall-card:hover {
   box-shadow: 0 16px 36px -10px rgba(0, 0, 0, 0.7), var(--glow-gold);
 }
 
@@ -233,7 +248,7 @@
 .stall-card-banner-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(18, 24, 38, 0.95) 0%, rgba(18, 24, 38, 0.2) 60%, transparent 100%);
+  background: linear-gradient(to top, rgba(15, 23, 42, 0.8) 0%, rgba(15, 23, 42, 0.1) 60%, transparent 100%);
 }
 
 .stall-badge-float {
@@ -267,7 +282,7 @@
 .stall-title {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #FFFFFF;
+  color: var(--text-main);
 }
 
 .stall-tagline {
@@ -295,7 +310,7 @@
 }
 
 .stall-meta-item.rating {
-  color: #FBBF24;
+  color: #D97706;
   font-weight: 700;
 }
 
@@ -307,7 +322,7 @@
 }
 
 .menu-item-card {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--bg-surface);
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-md);
   padding: 16px;
@@ -315,11 +330,11 @@
   gap: 16px;
   align-items: center;
   transition: all var(--transition-fast);
+  box-shadow: var(--shadow-card);
 }
 
 .menu-item-card:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 159, 28, 0.25);
+  border-color: rgba(255, 159, 28, 0.35);
   transform: translateY(-2px);
 }
 
@@ -329,7 +344,7 @@
   border-radius: var(--radius-md);
   object-fit: cover;
   flex-shrink: 0;
-  background-color: #1a2234;
+  background-color: #e2e8f0;
 }
 
 .menu-item-details {
@@ -340,7 +355,7 @@
   font-size: 1rem;
   font-weight: 700;
   margin-bottom: 4px;
-  color: #FFFFFF;
+  color: var(--text-main);
 }
 
 .menu-item-price {
@@ -404,7 +419,7 @@
   padding: 14px 22px;
   border-radius: var(--radius-full);
   background: linear-gradient(135deg, #FF9F1C 0%, #FF5722 100%);
-  color: #0A0E17;
+  color: #FFFFFF;
   font-weight: 800;
   font-family: var(--font-brand);
   box-shadow: 0 10px 30px rgba(255, 87, 34, 0.4), var(--glow-gold);
@@ -413,13 +428,17 @@
   transition: all var(--transition-bounce);
 }
 
+html.dark .cart-floating-trigger {
+  color: #0A0E17;
+}
+
 .cart-floating-trigger:hover {
   transform: translateY(-4px) scale(1.04);
 }
 
 .cart-badge-count {
   background: #0A0E17;
-  color: var(--primary-gold);
+  color: #FFFFFF;
   width: 26px;
   height: 26px;
   border-radius: 50%;
@@ -427,6 +446,11 @@
   align-items: center;
   justify-content: center;
   font-size: 0.85rem;
+}
+
+html.dark .cart-badge-count {
+  background: #0A0E17;
+  color: var(--primary-gold);
 }
 
 /* Active Orders Board */
@@ -447,6 +471,7 @@
   gap: 14px;
   position: relative;
   overflow: hidden;
+  box-shadow: var(--shadow-card);
 }
 
 .token-card.ready-glow {
@@ -483,22 +508,22 @@
 }
 .token-status-pill.placed {
   background: rgba(245, 158, 11, 0.15);
-  color: #F59E0B;
+  color: #D97706;
   border: 1px solid rgba(245, 158, 11, 0.3);
 }
 .token-status-pill.kitchen-preparing {
   background: rgba(6, 182, 212, 0.15);
-  color: #06B6D4;
+  color: #0284C7;
   border: 1px solid rgba(6, 182, 212, 0.3);
 }
 .token-status-pill.ready-at-counter {
   background: rgba(16, 185, 129, 0.18);
-  color: #10B981;
+  color: #059669;
   border: 1px solid rgba(16, 185, 129, 0.4);
 }
 .token-status-pill.completed {
   background: rgba(148, 163, 184, 0.15);
-  color: #94A3B8;
+  color: #64748B;
   border: 1px solid rgba(148, 163, 184, 0.3);
 }
 
@@ -523,6 +548,7 @@
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-lg);
   margin-bottom: 28px;
+  box-shadow: var(--shadow-card);
 }
 
 .owner-stall-info {
@@ -554,7 +580,7 @@
 .toggle-track {
   width: 48px;
   height: 26px;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(148, 163, 184, 0.25);
   border-radius: var(--radius-full);
   position: relative;
   transition: background-color var(--transition-fast);
@@ -572,6 +598,7 @@
   position: absolute;
   top: 3px;
   left: 3px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   transition: transform var(--transition-bounce);
 }
 
@@ -588,12 +615,13 @@
 }
 
 .pipeline-col {
-  background: rgba(18, 24, 38, 0.6);
+  background: var(--bg-card);
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-lg);
   padding: 20px;
   display: flex;
   flex-direction: column;
+  box-shadow: var(--shadow-card);
 }
 
 .pipeline-col-header {
@@ -616,9 +644,10 @@
 .pipeline-count {
   padding: 2px 10px;
   border-radius: var(--radius-full);
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(148, 163, 184, 0.15);
   font-size: 0.8rem;
   font-weight: 700;
+  color: var(--text-main);
 }
 
 .pipeline-orders-list {
@@ -629,7 +658,6 @@
   min-height: 120px;
 }
 
-/* Order Item in Owner view */
 .owner-order-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-glass);
@@ -638,11 +666,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.owner-order-card:hover {
-  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: var(--shadow-card);
 }
 
 /* --------------------------------------------------------------------------
@@ -655,6 +679,7 @@
   border-radius: var(--radius-xl);
   padding: 32px;
   margin-bottom: 32px;
+  box-shadow: var(--shadow-card);
 }
 
 .admin-section-header {
@@ -689,10 +714,10 @@
 
 .form-input, .form-select {
   padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--bg-surface);
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-md);
-  color: #FFFFFF;
+  color: var(--text-main);
   font-family: var(--font-body);
   font-size: 0.95rem;
   outline: none;
@@ -701,18 +726,17 @@
 
 .form-input:focus, .form-select:focus {
   border-color: var(--primary-gold);
-  background: rgba(255, 255, 255, 0.08);
   box-shadow: 0 0 14px rgba(255, 159, 28, 0.2);
 }
 
 .form-select option {
   background-color: var(--bg-surface);
-  color: #FFFFFF;
+  color: var(--text-main);
 }
 
 /* Shop Provisioned Success Credential Card */
 .credentials-receipt {
-  background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
+  background: var(--bg-elevated);
   border: 1px dashed var(--primary-gold);
   border-radius: var(--radius-lg);
   padding: 24px;
@@ -727,7 +751,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--bg-surface);
   border-radius: var(--radius-sm);
   font-family: var(--font-mono);
   font-size: 0.9rem;
@@ -756,12 +780,13 @@
 
 .stalls-table td {
   padding: 16px 18px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid var(--border-glass);
   font-size: 0.92rem;
+  color: var(--text-main);
 }
 
 .stalls-table tr:hover td {
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(148, 163, 184, 0.08);
 }
 
 /* --------------------------------------------------------------------------
@@ -772,7 +797,7 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   margin-bottom: 24px;
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--bg-elevated);
   padding: 6px;
   border-radius: var(--radius-md);
 }
@@ -797,7 +822,7 @@
 .role-tab-btn.active {
   background: var(--bg-surface);
   color: var(--primary-gold);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .demo-credentials-pill {
@@ -814,7 +839,7 @@
 
 .demo-cred-btn {
   background: var(--primary-gold);
-  color: #0A0E17;
+  color: #FFFFFF;
   border: none;
   padding: 6px 12px;
   border-radius: var(--radius-sm);
@@ -822,6 +847,10 @@
   font-weight: 700;
   cursor: pointer;
   transition: transform var(--transition-fast);
+}
+
+html.dark .demo-cred-btn {
+  color: #0A0E17;
 }
 
 .demo-cred-btn:hover {
