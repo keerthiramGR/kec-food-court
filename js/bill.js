@@ -77,6 +77,21 @@ export async function openOrderBillModal(order) {
         <div class="bill-token-caption">FOOD COURT PICKUP TOKEN</div>
         <div class="bill-token-number">${order.tokenNumber}</div>
         <div class="bill-token-sub">Present this token / QR at stall counter when ready</div>
+
+        <!-- Prominent Ordered Food Items Pill Bar -->
+        <div class="bill-token-dishes" style="margin-top: 12px; padding: 10px 14px; background: rgba(0,0,0,0.3); border-radius: var(--radius-md); border: 1px solid rgba(255, 159, 28, 0.4);">
+          <div style="font-size: 0.72rem; color: var(--primary-gold); text-transform: uppercase; font-weight: 700; letter-spacing: 0.8px; margin-bottom: 6px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <span>🍱</span> ORDERED FOOD DISHES (${(order.items || []).reduce((sum, i) => sum + (i.qty || 1), 0)} items)
+          </div>
+          <div style="font-size: 1.02rem; font-weight: 800; color: #FFFFFF; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;">
+            ${(order.items || []).map(item => `
+              <span style="background: rgba(255, 159, 28, 0.15); border: 1px solid rgba(255, 159, 28, 0.3); padding: 4px 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px;">
+                <span style="color: var(--primary-gold); font-family: var(--font-mono); font-size: 1.05rem;">${item.qty}x</span>
+                <span>${item.name}</span>
+              </span>
+            `).join('')}
+          </div>
+        </div>
       </div>
 
       <!-- Meta Grid: Order ID, Date, Stall, Type -->
@@ -118,26 +133,34 @@ export async function openOrderBillModal(order) {
         </div>
       </div>
 
-      <!-- Itemized Dishes Table -->
+      <!-- Itemized Dishes Table with Prominent Food Names -->
       <div class="bill-table-wrap">
         <table class="bill-items-table">
           <thead>
             <tr>
-              <th style="text-align: left; width: 50%;">Dish Item</th>
+              <th style="text-align: left; width: 48%;">Ordered Food Item Name</th>
               <th style="text-align: center; width: 14%;">Qty</th>
               <th style="text-align: right; width: 18%;">Price</th>
-              <th style="text-align: right; width: 18%;">Total</th>
+              <th style="text-align: right; width: 20%;">Total</th>
             </tr>
           </thead>
           <tbody>
             ${(order.items || []).map(item => `
               <tr>
                 <td style="text-align: left;">
-                  <span style="font-weight: 700; color: #FFFFFF;">${item.name}</span>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="color: var(--primary-gold); font-size: 1.05rem;">🍽️</span>
+                    <div>
+                      <div style="font-weight: 800; color: #FFFFFF; font-size: 0.98rem; line-height: 1.3;">${item.name}</div>
+                      <div style="font-size: 0.74rem; color: var(--text-secondary); margin-top: 2px;">
+                        ${order.shopName || 'Food Stall'} • ₹${item.price} per plate/cup
+                      </div>
+                    </div>
+                  </div>
                 </td>
-                <td style="text-align: center; font-weight: 700;">${item.qty}</td>
-                <td style="text-align: right; color: var(--text-secondary);">₹${item.price}</td>
-                <td style="text-align: right; font-weight: 800; color: var(--primary-gold);">₹${item.price * item.qty}</td>
+                <td style="text-align: center; font-weight: 800; font-size: 1rem; color: #FFFFFF;">${item.qty}</td>
+                <td style="text-align: right; color: var(--text-secondary); font-size: 0.92rem;">₹${item.price}</td>
+                <td style="text-align: right; font-weight: 800; color: var(--primary-gold); font-size: 1rem;">₹${item.price * item.qty}</td>
               </tr>
             `).join('')}
           </tbody>

@@ -171,6 +171,10 @@ function triggerPaymentProcessing(orderParams, modal, modalBody, showToast, rend
             <span>Paid To:</span>
             <span>KEC Food Court (${orderParams.stallNumber || 'Stall #01'})</span>
           </div>
+          <div class="meta-row" style="background: rgba(255, 159, 28, 0.1); padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(255, 159, 28, 0.25); margin: 6px 0;">
+            <span style="color: var(--primary-gold); font-weight: 700;">Ordered Food:</span>
+            <span style="font-weight: 800; color: #FFFFFF;">${(orderParams.items || []).map(i => `${i.qty}x ${i.name}`).join(', ')}</span>
+          </div>
           <div class="meta-row">
             <span>Status:</span>
             <span style="color: #10B981; font-weight: 700;">✅ Confirmed & Credited</span>
