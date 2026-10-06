@@ -13,10 +13,10 @@ export function renderAdminPortal(container, showToast, renderApp) {
   const totalMenuItemsCount = shops.reduce((sum, s) => sum + (s.menu ? s.menu.length : 0), 0);
 
   container.innerHTML = `
-    <!-- Super Admin Hero -->
-    <div class="portal-hero" style="background: linear-gradient(135deg, rgba(20, 26, 42, 0.95) 0%, rgba(10, 14, 23, 0.98) 100%);">
+    <!-- Super Admin Hero with Warm Orange Shade -->
+    <div class="portal-hero portal-hero-orange">
       <div class="portal-hero-content">
-        <div class="portal-hero-tag" style="background: rgba(236, 72, 153, 0.12); color: #F43F5E; border-color: rgba(244, 63, 94, 0.3);">
+        <div class="portal-hero-tag">
           <span>👑</span> Master Food Court Administration • Kongu Engineering College
         </div>
         <h1 class="portal-hero-title">

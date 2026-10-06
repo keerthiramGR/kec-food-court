@@ -150,6 +150,7 @@ h1, h2, h3, h4, h5, h6 {
 .gradient-text {
   background: linear-gradient(135deg, #FF9F1C 0%, #FF5722 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   display: inline-block;
 }
@@ -157,12 +158,14 @@ h1, h2, h3, h4, h5, h6 {
 html.dark .gradient-text {
   background: linear-gradient(135deg, #FFE259 0%, #FFA751 50%, #FF5722 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .gradient-text-emerald {
   background: linear-gradient(135deg, #34D399 0%, #10B981 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   display: inline-block;
 }
