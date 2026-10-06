@@ -184,6 +184,57 @@ class FoodCourtState {
     return null;
   }
 
+  updateMenuItem(shopId, itemId, updatedFields) {
+    const shops = this.getShops();
+    const shop = shops.find(s => s.id === shopId);
+    if (shop && shop.menu) {
+      const itemIndex = shop.menu.findIndex(i => i.id === itemId);
+      if (itemIndex !== -1) {
+        shop.menu[itemIndex] = {
+          ...shop.menu[itemIndex],
+          ...updatedFields
+        };
+        this.saveShops(shops);
+        this.notify('MENU_UPDATED', { shopId, itemId, item: shop.menu[itemIndex] });
+
+        // Sync with Node.js backend
+        try {
+          fetch(`/api/shops/${shopId}/menu/${itemId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updatedFields)
+          }).catch(e => console.warn('Backend sync notice:', e));
+        } catch {}
+
+        return shop.menu[itemIndex];
+      }
+    }
+    return null;
+  }
+
+  deleteMenuItem(shopId, itemId) {
+    const shops = this.getShops();
+    const shop = shops.find(s => s.id === shopId);
+    if (shop && shop.menu) {
+      const itemIndex = shop.menu.findIndex(i => i.id === itemId);
+      if (itemIndex !== -1) {
+        const removed = shop.menu.splice(itemIndex, 1);
+        this.saveShops(shops);
+        this.notify('MENU_UPDATED', { shopId, itemId, deleted: true });
+
+        // Sync with Node.js backend
+        try {
+          fetch(`/api/shops/${shopId}/menu/${itemId}`, {
+            method: 'DELETE'
+          }).catch(e => console.warn('Backend sync notice:', e));
+        } catch {}
+
+        return removed[0];
+      }
+    }
+    return null;
+  }
+
   toggleMenuItemAvailability(shopId, itemId) {
     const shops = this.getShops();
     const shop = shops.find(s => s.id === shopId);
@@ -193,6 +244,16 @@ class FoodCourtState {
         item.isAvailable = !item.isAvailable;
         this.saveShops(shops);
         this.notify('MENU_UPDATED', { shopId, itemId, isAvailable: item.isAvailable });
+
+        // Sync with Node.js backend
+        try {
+          fetch(`/api/shops/${shopId}/menu/${itemId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isAvailable: item.isAvailable })
+          }).catch(e => console.warn('Backend sync notice:', e));
+        } catch {}
+
         return item;
       }
     }

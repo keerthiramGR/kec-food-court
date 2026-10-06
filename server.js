@@ -261,7 +261,7 @@ app.post('/api/shops/:id/menu', (req, res) => {
   res.status(201).json({ success: true, item: newItem });
 });
 
-// 5. Toggle Dish Stock Availability
+// 5. Update Dish Details / Stock Availability
 app.patch('/api/shops/:id/menu/:itemId', (req, res) => {
   const shop = shopsData.find(s => s.id === req.params.id);
   if (!shop || !shop.menu) return res.status(404).json({ success: false, error: "Shop or menu not found" });
@@ -269,8 +269,28 @@ app.patch('/api/shops/:id/menu/:itemId', (req, res) => {
   const item = shop.menu.find(i => i.id === req.params.itemId);
   if (!item) return res.status(404).json({ success: false, error: "Dish not found" });
 
-  item.isAvailable = req.body.isAvailable !== undefined ? req.body.isAvailable : !item.isAvailable;
+  if (req.body.name !== undefined) item.name = String(req.body.name).trim();
+  if (req.body.price !== undefined) item.price = Number(req.body.price);
+  if (req.body.category !== undefined) item.category = String(req.body.category).trim();
+  if (req.body.isVeg !== undefined) item.isVeg = Boolean(req.body.isVeg);
+  if (req.body.isAvailable !== undefined) item.isAvailable = Boolean(req.body.isAvailable);
+  if (req.body.prepTime !== undefined) item.prepTime = String(req.body.prepTime).trim();
+  if (req.body.badge !== undefined) item.badge = String(req.body.badge).trim();
+  if (req.body.image !== undefined) item.image = String(req.body.image).trim();
+
   res.json({ success: true, item });
+});
+
+// 5b. Delete Dish from Menu
+app.delete('/api/shops/:id/menu/:itemId', (req, res) => {
+  const shop = shopsData.find(s => s.id === req.params.id);
+  if (!shop || !shop.menu) return res.status(404).json({ success: false, error: "Shop or menu not found" });
+
+  const itemIndex = shop.menu.findIndex(i => i.id === req.params.itemId);
+  if (itemIndex === -1) return res.status(404).json({ success: false, error: "Dish not found" });
+
+  const removed = shop.menu.splice(itemIndex, 1);
+  res.json({ success: true, removedItem: removed[0] });
 });
 
 // 6. Orders
