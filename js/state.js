@@ -11,7 +11,33 @@ class FoodCourtState {
   constructor() {
     this.listeners = [];
     this.init();
+    this.initSyncChannel();
     this.syncBackendShops();
+  }
+
+  initSyncChannel() {
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      try {
+        this.syncChannel = new BroadcastChannel('kec_foodcourt_sync');
+        this.syncChannel.onmessage = (event) => {
+          const { action, payload } = event.data || {};
+          if (action === 'SHOPS_UPDATED' || action === 'ORDER_CREATED' || action === 'MENU_UPDATED') {
+            this.notify('SHOPS_UPDATED', this.getShops());
+            this.notify('ORDERS_UPDATED', this.getOrders());
+          }
+        };
+      } catch (e) {
+        console.warn('BroadcastChannel not initialized:', e);
+      }
+    }
+  }
+
+  broadcast(action, payload) {
+    if (this.syncChannel) {
+      try {
+        this.syncChannel.postMessage({ action, payload, time: Date.now() });
+      } catch (e) {}
+    }
   }
 
   init() {
@@ -76,7 +102,27 @@ class FoodCourtState {
   getShops() {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.SHOPS);
-      return data ? JSON.parse(data) : INITIAL_SHOPS;
+      const shops = data ? JSON.parse(data) : INITIAL_SHOPS;
+      // Ensure each item has a defined servingsCount and consistent availability
+      let needsSave = false;
+      shops.forEach(s => {
+        if (Array.isArray(s.menu)) {
+          s.menu.forEach(d => {
+            if (d.servingsCount === undefined) {
+              d.servingsCount = 25;
+              needsSave = true;
+            }
+            if (d.servingsCount <= 0 && d.isAvailable) {
+              d.isAvailable = false;
+              needsSave = true;
+            }
+          });
+        }
+      });
+      if (needsSave && !data) {
+        localStorage.setItem(STORAGE_KEYS.SHOPS, JSON.stringify(shops));
+      }
+      return shops;
     } catch {
       return INITIAL_SHOPS;
     }
@@ -85,6 +131,15 @@ class FoodCourtState {
   saveShops(shops) {
     localStorage.setItem(STORAGE_KEYS.SHOPS, JSON.stringify(shops));
     this.notify('SHOPS_UPDATED', shops);
+    this.broadcast('SHOPS_UPDATED', shops);
+  }
+
+  updateDishServings(shopId, itemId, count) {
+    const cleanCount = Math.max(0, parseInt(count) || 0);
+    return this.updateMenuItem(shopId, itemId, {
+      servingsCount: cleanCount,
+      isAvailable: cleanCount > 0
+    });
   }
 
   getShopById(shopId) {
@@ -273,6 +328,7 @@ class FoodCourtState {
   saveOrders(orders) {
     localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders));
     this.notify('ORDERS_UPDATED', orders);
+    this.broadcast('ORDERS_UPDATED', orders);
   }
 
   createOrder(orderData) {
@@ -286,9 +342,36 @@ class FoodCourtState {
       timestamp: "Just now",
       ...orderData
     };
+
+    // Automatically deduct ordered servings from shop menu inventory
+    const shops = this.getShops();
+    let shopsModified = false;
+    if (Array.isArray(orderData.items)) {
+      orderData.items.forEach(orderedItem => {
+        shops.forEach(shop => {
+          if (Array.isArray(shop.menu)) {
+            const dish = shop.menu.find(d => d.id === orderedItem.id);
+            if (dish) {
+              const currentCount = dish.servingsCount !== undefined ? dish.servingsCount : 25;
+              dish.servingsCount = Math.max(0, currentCount - (orderedItem.qty || 1));
+              if (dish.servingsCount === 0) {
+                dish.isAvailable = false;
+              }
+              shopsModified = true;
+            }
+          }
+        });
+      });
+    }
+
+    if (shopsModified) {
+      this.saveShops(shops);
+    }
+
     orders.unshift(newOrder);
     this.saveOrders(orders);
     this.notify('ORDER_CREATED', newOrder);
+    this.broadcast('ORDER_CREATED', newOrder);
 
     // Sync with Node.js backend
     try {
@@ -347,8 +430,20 @@ class FoodCourtState {
   }
 
   addToCart(item, shop) {
+    const shops = this.getShops();
+    const currentShop = shops.find(s => s.id === shop.id) || shop;
+    const currentDish = (currentShop.menu || []).find(d => d.id === item.id) || item;
+    const availableServings = currentDish.servingsCount !== undefined ? currentDish.servingsCount : 25;
+
+    if (availableServings <= 0 || currentDish.isAvailable === false) {
+      return { success: false, message: `"${item.name}" is currently sold out!` };
+    }
+
     const existing = this.cart.find(c => c.id === item.id);
     if (existing) {
+      if (existing.qty >= availableServings) {
+        return { success: false, message: `Only ${availableServings} servings left for "${item.name}"!` };
+      }
       existing.qty += 1;
     } else {
       this.cart.push({
@@ -364,17 +459,29 @@ class FoodCourtState {
       });
     }
     this.saveCart();
+    return { success: true, remaining: availableServings - (existing ? existing.qty : 1) };
   }
 
   updateCartQty(itemId, change) {
     const idx = this.cart.findIndex(c => c.id === itemId);
     if (idx !== -1) {
+      if (change > 0) {
+        const item = this.cart[idx];
+        const shop = this.getShopById(item.shopId);
+        const dish = shop?.menu?.find(m => m.id === itemId);
+        const maxServings = dish?.servingsCount !== undefined ? dish.servingsCount : 25;
+        if (item.qty + change > maxServings) {
+          return { success: false, message: `Only ${maxServings} servings available for "${item.name}"` };
+        }
+      }
       this.cart[idx].qty += change;
       if (this.cart[idx].qty <= 0) {
         this.cart.splice(idx, 1);
       }
       this.saveCart();
+      return { success: true };
     }
+    return { success: false };
   }
 
   clearCart() {

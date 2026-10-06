@@ -260,12 +260,24 @@ export function renderOwnerPortal(container, showToast, renderApp) {
               <th>Diet</th>
               <th>Price</th>
               <th>Est. Time</th>
+              <th>Servings Left</th>
               <th>Availability</th>
               <th style="text-align: right;">Actions</th>
             </tr>
           </thead>
           <tbody id="owner-menu-tbody">
-            ${(currentShop.menu || []).map(dish => `
+            ${(currentShop.menu || []).map(dish => {
+              const servings = dish.servingsCount !== undefined ? dish.servingsCount : 25;
+              let servingsBadge = '';
+              if (servings <= 0) {
+                servingsBadge = `<span class="badge badge-rose" style="font-size: 0.72rem; font-weight: 700;">🔴 0 left (Sold Out)</span>`;
+              } else if (servings <= 5) {
+                servingsBadge = `<span class="badge badge-gold" style="font-size: 0.72rem; font-weight: 700;">⚠️ ${servings} left</span>`;
+              } else {
+                servingsBadge = `<span class="badge badge-emerald" style="font-size: 0.72rem; font-weight: 700;">🟢 ${servings} left</span>`;
+              }
+
+              return `
               <tr class="dish-row" 
                   data-dish-id="${dish.id}" 
                   data-name="${escapeHtml(dish.name)}" 
@@ -293,6 +305,16 @@ export function renderOwnerPortal(container, showToast, renderApp) {
                 <td style="font-weight: 800; color: var(--primary-gold); font-family: var(--font-brand); font-size: 1.05rem;">₹${dish.price}</td>
                 <td style="color: var(--text-secondary); font-size: 0.85rem;">${escapeHtml(dish.prepTime || '10m')}</td>
                 <td>
+                  <div style="display: flex; flex-direction: column; gap: 4px;">
+                    ${servingsBadge}
+                    <div style="display: inline-flex; align-items: center; gap: 3px; margin-top: 3px;">
+                      <button class="btn btn-secondary btn-xs btn-quick-servings" data-shop-id="${currentShop.id}" data-dish-id="${dish.id}" data-delta="-1" title="Deduct 1 serving" style="padding: 2px 7px;">-1</button>
+                      <button class="btn btn-secondary btn-xs btn-quick-servings" data-shop-id="${currentShop.id}" data-dish-id="${dish.id}" data-delta="1" title="Add 1 serving" style="padding: 2px 7px;">+1</button>
+                      <button class="btn btn-secondary btn-xs btn-quick-servings" data-shop-id="${currentShop.id}" data-dish-id="${dish.id}" data-delta="20" title="Restock +20 servings" style="padding: 2px 7px; color: var(--primary-gold); border-color: rgba(255, 159, 28, 0.4);">+20</button>
+                    </div>
+                  </div>
+                </td>
+                <td>
                   <span class="badge ${dish.isAvailable ? 'badge-emerald' : 'badge-rose'}" style="font-size: 0.74rem;">
                     ${dish.isAvailable ? '● In Stock' : '○ Sold Out'}
                   </span>
@@ -311,9 +333,10 @@ export function renderOwnerPortal(container, showToast, renderApp) {
                   </div>
                 </td>
               </tr>
-            `).join('')}
+              `;
+            }).join('')}
             <tr id="owner-menu-empty-state" style="display: none;">
-              <td colspan="7" style="text-align: center; padding: 40px 20px; color: var(--text-secondary);">
+              <td colspan="8" style="text-align: center; padding: 40px 20px; color: var(--text-secondary);">
                 <div style="font-size: 1.8rem; margin-bottom: 8px;">🍽️</div>
                 <strong>No dishes match your filter criteria.</strong>
                 <div style="margin-top: 6px; font-size: 0.85rem;">Click "Reset" or change your search terms.</div>
@@ -507,6 +530,25 @@ export function renderOwnerPortal(container, showToast, renderApp) {
     });
   });
 
+  // 5b. Quick Servings Stepper (-1, +1, +20)
+  container.querySelectorAll('.btn-quick-servings').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const dishId = btn.dataset.dishId;
+      const shopId = btn.dataset.shopId;
+      const delta = parseInt(btn.dataset.delta) || 0;
+      const shop = state.getShopById(shopId);
+      const dish = (shop?.menu || []).find(d => d.id === dishId);
+      if (dish) {
+        const currentCount = dish.servingsCount !== undefined ? dish.servingsCount : 25;
+        const newCount = Math.max(0, currentCount + delta);
+        state.updateDishServings(shopId, dishId, newCount);
+        showToast(`Updated "${dish.name}" servings to ${newCount}!`, 'success');
+        renderApp();
+      }
+    });
+  });
+
   // 6. Edit Menu Dish Details
   container.querySelectorAll('.btn-edit-dish').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -579,22 +621,23 @@ export function renderOwnerPortal(container, showToast, renderApp) {
           </div>
           <div class="form-group">
             <label style="font-weight: 600; font-size: 0.88rem; color: var(--text-secondary);">Estimated Prep Time</label>
-            <input type="text" id="edit-dish-prep" class="form-input" value="${escapeHtml(dish.prepTime || '10m')}" placeholder="e.g. 5m, 10m" />
-          </div>
-        </div>
-
-        <div class="form-grid-2">
+            <input type="text" id="edit-dish-prep" class="form-input" value=        <div class="form-grid-2">
           <div class="form-group">
             <label style="font-weight: 600; font-size: 0.88rem; color: var(--text-secondary);">Badge / Highlight Tag</label>
             <input type="text" id="edit-dish-badge" class="form-input" value="${escapeHtml(dish.badge || '')}" placeholder="e.g. Bestseller, Spicy, Popular, Crispy" />
           </div>
           <div class="form-group">
-            <label style="font-weight: 600; font-size: 0.88rem; color: var(--text-secondary);">Availability Status</label>
-            <select id="edit-dish-available" class="form-select">
-              <option value="true" ${dish.isAvailable ? 'selected' : ''}>● In Stock (Available)</option>
-              <option value="false" ${!dish.isAvailable ? 'selected' : ''}>○ Sold Out (Unavailable)</option>
-            </select>
+            <label style="font-weight: 600; font-size: 0.88rem; color: var(--text-secondary);">Available Servings (Qty)</label>
+            <input type="number" id="edit-dish-servings" class="form-input" min="0" value="${dish.servingsCount !== undefined ? dish.servingsCount : 25}" required />
           </div>
+        </div>
+
+        <div class="form-group">
+          <label style="font-weight: 600; font-size: 0.88rem; color: var(--text-secondary);">Availability Status</label>
+          <select id="edit-dish-available" class="form-select">
+            <option value="true" ${dish.isAvailable ? 'selected' : ''}>● In Stock (Available)</option>
+            <option value="false" ${!dish.isAvailable ? 'selected' : ''}>○ Sold Out (Unavailable)</option>
+          </select>
         </div>
 
         <div class="form-group">
@@ -604,7 +647,7 @@ export function renderOwnerPortal(container, showToast, renderApp) {
           <div style="display: flex; align-items: center; gap: 14px; margin-top: 8px; padding: 10px 14px; background: rgba(0,0,0,0.25); border-radius: var(--radius-md); border: 1px solid var(--border-glass);">
             <img id="edit-dish-preview-img" 
                  src="${dish.image || 'assets/menu/f-1.jpg'}" 
-                 onerror="this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=100'"
+                 onerror="this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=100'" 
                  style="width: 52px; height: 52px; border-radius: 8px; object-fit: cover; border: 1px solid var(--border-glass); flex-shrink: 0;" />
             <div>
               <div style="font-size: 0.82rem; font-weight: 600; color: #FFF;">Photo Preview</div>
@@ -649,7 +692,8 @@ export function renderOwnerPortal(container, showToast, renderApp) {
         const isVeg = document.getElementById('edit-dish-veg').value === 'true';
         const prepTime = document.getElementById('edit-dish-prep').value.trim();
         const badge = document.getElementById('edit-dish-badge').value.trim();
-        const isAvailable = document.getElementById('edit-dish-available').value === 'true';
+        const servingsCount = Math.max(0, parseInt(document.getElementById('edit-dish-servings').value) || 0);
+        const isAvailable = (document.getElementById('edit-dish-available').value === 'true') && (servingsCount > 0);
         const image = document.getElementById('edit-dish-image').value.trim();
 
         state.updateMenuItem(shopId, dish.id, {
@@ -659,12 +703,13 @@ export function renderOwnerPortal(container, showToast, renderApp) {
           isVeg,
           prepTime,
           badge,
+          servingsCount,
           isAvailable,
           image: image || dish.image || (isVeg ? 'assets/menu/f-1.jpg' : 'assets/menu/f-43.jpg')
         });
 
         modal.classList.remove('open');
-        showToast(`"${name}" menu details updated successfully!`, 'success');
+        showToast(`"${name}" menu details (${servingsCount} servings) updated!`, 'success');
         renderApp();
       });
     }
@@ -721,12 +766,17 @@ export function renderOwnerPortal(container, showToast, renderApp) {
             <input type="text" id="dish-badge" class="form-input" placeholder="e.g. Chef Special, Crispy, Popular" />
           </div>
           <div class="form-group">
-            <label style="font-weight: 600; font-size: 0.88rem; color: var(--text-secondary);">Initial Stock</label>
-            <select id="dish-available" class="form-select">
-              <option value="true" selected>● In Stock</option>
-              <option value="false">○ Sold Out</option>
-            </select>
+            <label style="font-weight: 600; font-size: 0.88rem; color: var(--text-secondary);">Available Servings (Qty)</label>
+            <input type="number" id="dish-servings" class="form-input" min="0" value="30" required />
           </div>
+        </div>
+
+        <div class="form-group">
+          <label style="font-weight: 600; font-size: 0.88rem; color: var(--text-secondary);">Initial Stock</label>
+          <select id="dish-available" class="form-select">
+            <option value="true" selected>● In Stock</option>
+            <option value="false">○ Sold Out</option>
+          </select>
         </div>
 
         <div class="form-group">
@@ -736,7 +786,7 @@ export function renderOwnerPortal(container, showToast, renderApp) {
           <div style="display: flex; align-items: center; gap: 14px; margin-top: 8px; padding: 10px 14px; background: rgba(0,0,0,0.25); border-radius: var(--radius-md); border: 1px solid var(--border-glass);">
             <img id="add-dish-preview-img" 
                  src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=100" 
-                 onerror="this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=100'"
+                 onerror="this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=100'" 
                  style="width: 52px; height: 52px; border-radius: 8px; object-fit: cover; border: 1px solid var(--border-glass); flex-shrink: 0;" />
             <div>
               <div style="font-size: 0.82rem; font-weight: 600; color: #FFF;">Photo Preview</div>
@@ -781,7 +831,8 @@ export function renderOwnerPortal(container, showToast, renderApp) {
         const isVeg = document.getElementById('dish-veg').value === 'true';
         const prepTime = document.getElementById('dish-prep').value.trim();
         const badge = document.getElementById('dish-badge').value.trim();
-        const isAvailable = document.getElementById('dish-available').value === 'true';
+        const servingsCount = Math.max(0, parseInt(document.getElementById('dish-servings').value) || 0);
+        const isAvailable = (document.getElementById('dish-available').value === 'true') && (servingsCount > 0);
         const customImage = document.getElementById('dish-image').value.trim();
 
         const image = customImage || (isVeg 
@@ -795,12 +846,13 @@ export function renderOwnerPortal(container, showToast, renderApp) {
           isVeg,
           prepTime: prepTime || '10m',
           badge: badge || 'New',
+          servingsCount,
           isAvailable,
           image
         });
 
         modal.classList.remove('open');
-        showToast(`"${name}" added to menu successfully!`, 'success');
+        showToast(`"${name}" (${servingsCount} servings) added to menu!`, 'success');
         renderApp();
       });
     }

@@ -278,6 +278,14 @@ app.patch('/api/shops/:id/menu/:itemId', (req, res) => {
   if (req.body.prepTime !== undefined) item.prepTime = String(req.body.prepTime).trim();
   if (req.body.badge !== undefined) item.badge = String(req.body.badge).trim();
   if (req.body.image !== undefined) item.image = String(req.body.image).trim();
+  if (req.body.servingsCount !== undefined) {
+    item.servingsCount = Math.max(0, parseInt(req.body.servingsCount) || 0);
+    if (item.servingsCount === 0) {
+      item.isAvailable = false;
+    } else if (req.body.isAvailable === undefined) {
+      item.isAvailable = true;
+    }
+  }
 
   res.json({ success: true, item });
 });
@@ -340,6 +348,24 @@ app.post('/api/orders', async (req, res) => {
     qrCodeSvg,
     ...req.body
   };
+
+  // Automatically deduct servings count for each ordered dish
+  if (Array.isArray(req.body.items)) {
+    req.body.items.forEach(orderedItem => {
+      shopsData.forEach(shop => {
+        if (shop.menu) {
+          const dish = shop.menu.find(d => d.id === orderedItem.id);
+          if (dish) {
+            const currentCount = dish.servingsCount !== undefined ? dish.servingsCount : 25;
+            dish.servingsCount = Math.max(0, currentCount - (orderedItem.qty || 1));
+            if (dish.servingsCount === 0) {
+              dish.isAvailable = false;
+            }
+          }
+        }
+      });
+    });
+  }
 
   ordersData.unshift(newOrder);
   res.status(201).json({ success: true, order: newOrder });

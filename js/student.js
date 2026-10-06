@@ -388,6 +388,17 @@ export function renderStudentPortal(container, showToast, renderApp) {
               <button class="btn btn-secondary btn-sm" id="btn-clear-modal-search">Clear Search</button>
             </div>
           ` : items.map(item => {
+            const servings = item.servingsCount !== undefined ? item.servingsCount : 25;
+            const isAvailable = item.isAvailable && servings > 0;
+            let servingsBadgeHtml = '';
+            if (!isAvailable || servings <= 0) {
+              servingsBadgeHtml = `<span class="badge badge-rose" style="padding: 2px 7px; font-size: 0.68rem; font-weight: 700;">🔴 Sold Out (0 left)</span>`;
+            } else if (servings <= 5) {
+              servingsBadgeHtml = `<span class="badge badge-gold" style="padding: 2px 7px; font-size: 0.68rem; font-weight: 700; color: #F59E0B; border-color: #F59E0B;">🔥 Only ${servings} left!</span>`;
+            } else {
+              servingsBadgeHtml = `<span class="badge badge-emerald" style="padding: 2px 7px; font-size: 0.68rem; font-weight: 600;">🟢 ${servings} left</span>`;
+            }
+
             return `
               <div class="menu-item-card">
                 <img src="${item.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300'}" alt="${item.name}" class="menu-item-img" loading="lazy" />
@@ -399,20 +410,20 @@ export function renderStudentPortal(container, showToast, renderApp) {
                   <div class="menu-item-price">₹${item.price}</div>
                   <div class="menu-item-tags">
                     <span style="color: var(--text-secondary);">⏱️ ${item.prepTime || '10m'}</span>
+                    ${servingsBadgeHtml}
                     ${item.badge ? `<span class="badge badge-gold" style="padding: 2px 6px; font-size: 0.68rem;">${item.badge}</span>` : ''}
                     ${item.category ? `<span style="font-size: 0.7rem; color: var(--text-muted); background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 4px;">${item.category}</span>` : ''}
-                    ${!item.isAvailable ? `<span class="badge badge-rose" style="padding: 2px 6px; font-size: 0.68rem;">Sold Out</span>` : ''}
                   </div>
                 </div>
 
                 <div>
-                  ${item.isAvailable ? `
+                  ${isAvailable ? `
                     <button class="btn btn-primary btn-sm btn-add-item-cart" data-item-id="${item.id}" data-shop-id="${shop.id}">
                       + Add
                     </button>
                   ` : `
                     <button class="btn btn-secondary btn-sm" disabled style="opacity: 0.5; cursor: not-allowed;">
-                      Out
+                      Sold Out
                     </button>
                   `}
                 </div>
@@ -476,11 +487,17 @@ export function renderStudentPortal(container, showToast, renderApp) {
       modalContent.querySelectorAll('.btn-add-item-cart').forEach(btn => {
         btn.addEventListener('click', () => {
           const itemId = btn.dataset.itemId;
-          const targetItem = shop.menu.find(m => m.id === itemId);
+          const freshShop = state.getShopById(shop.id) || shop;
+          const targetItem = (freshShop.menu || []).find(m => m.id === itemId);
           if (targetItem) {
-            state.addToCart(targetItem, shop);
-            showToast(`Added "${targetItem.name}" (₹${targetItem.price}) to tray!`, 'success');
-            updateCartBadge();
+            const result = state.addToCart(targetItem, freshShop);
+            if (!result.success) {
+              showToast(result.message, 'warning');
+            } else {
+              showToast(`Added "${targetItem.name}" to tray! (${result.remaining} left)`, 'success');
+              updateCartBadge();
+              renderModalBody();
+            }
           }
         });
       });
@@ -500,6 +517,13 @@ export function renderStudentPortal(container, showToast, renderApp) {
         openOrderBillModal(order);
       }
     });
+  });
+
+  // Live auto-refresh when shop menu or servings are updated
+  state.subscribe((event) => {
+    if (event === 'SHOPS_UPDATED' || event === 'ORDER_CREATED') {
+      updateStallGrid();
+    }
   });
 
   updateStallGrid();

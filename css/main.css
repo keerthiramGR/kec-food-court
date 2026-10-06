@@ -259,6 +259,14 @@ html.dark .btn-primary {
   border-radius: var(--radius-sm);
 }
 
+.btn-xs {
+  padding: 3px 8px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  line-height: 1.2;
+}
+
 .btn-lg {
   padding: 14px 28px;
   font-size: 1.05rem;

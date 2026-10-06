@@ -199,7 +199,10 @@ function initCartModal() {
       // Inc / Dec handlers
       cartBody.querySelectorAll('.btn-cart-inc').forEach(btn => {
         btn.addEventListener('click', () => {
-          state.updateCartQty(btn.dataset.id, 1);
+          const res = state.updateCartQty(btn.dataset.id, 1);
+          if (res && !res.success) {
+            showToast(res.message, 'warning');
+          }
           openCartDrawer();
           updateCartBadge();
         });
@@ -228,7 +231,7 @@ function initCartModal() {
             shopId: firstItem.shopId,
             shopName: firstItem.shopName,
             stallNumber: firstItem.stallNumber,
-            items: cart.map(c => ({ name: c.name, qty: c.qty, price: c.price })),
+            items: cart.map(c => ({ id: c.id, name: c.name, qty: c.qty, price: c.price })),
             totalAmount: total,
             diningType: diningType
           };
@@ -291,7 +294,7 @@ export function initTheme() {
 }
 
 // Main Bootstrapping
-document.addEventListener('DOMContentLoaded', () => {
+function bootstrap() {
   initTheme();
   initSplash();
   initAuth(showToast, renderApp);
@@ -316,5 +319,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initial render
   renderApp();
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootstrap);
+} else {
+  bootstrap();
+}
 
