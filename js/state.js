@@ -1,20 +1,21 @@
 import { INITIAL_SHOPS, INITIAL_ORDERS, DEFAULT_USERS } from './data.js';
 
 const STORAGE_KEYS = {
-  SHOPS: 'kec_foodcourt_shops_v1',
-  ORDERS: 'kec_foodcourt_orders_v1',
-  CURRENT_USER: 'kec_foodcourt_user_v1',
-  CART: 'kec_foodcourt_cart_v1'
+  SHOPS: 'kec_foodcourt_shops_v5',
+  ORDERS: 'kec_foodcourt_orders_v5',
+  CURRENT_USER: 'kec_foodcourt_user_v2',
+  CART: 'kec_foodcourt_cart_v2'
 };
 
 class FoodCourtState {
   constructor() {
     this.listeners = [];
     this.init();
+    this.syncBackendShops();
   }
 
   init() {
-    // Load or seed shops
+    // Load or seed shops with exactly 2 default shops: Food and Juice
     const storedShops = localStorage.getItem(STORAGE_KEYS.SHOPS);
     if (!storedShops) {
       localStorage.setItem(STORAGE_KEYS.SHOPS, JSON.stringify(INITIAL_SHOPS));
@@ -55,6 +56,21 @@ class FoodCourtState {
     this.listeners.forEach(fn => {
       try { fn(eventType, payload); } catch (e) { console.error(e); }
     });
+  }
+
+  async syncBackendShops() {
+    try {
+      const res = await fetch('/api/shops');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.shops && data.shops.length > 0) {
+          localStorage.setItem(STORAGE_KEYS.SHOPS, JSON.stringify(data.shops));
+          this.notify('SHOPS_UPDATED', data.shops);
+        }
+      }
+    } catch {
+      // offline / static fallback
+    }
   }
 
   getShops() {

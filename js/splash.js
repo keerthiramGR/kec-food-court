@@ -44,6 +44,13 @@ export function initSplash() {
     clearInterval(timer);
     splash.classList.add('hidden');
     document.body.classList.remove('splash-active');
+
+    // Reveal plain background login gateway right after intro
+    setTimeout(() => {
+      if (window.showLoginGateway) {
+        window.showLoginGateway('student');
+      }
+    }, 150);
   }
 
   if (skipBtn) {

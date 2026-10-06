@@ -445,6 +445,50 @@ html.dark .theme-toggle-btn .theme-icon-moon {
   min-height: calc(100vh - 80px);
 }
 
+/* --------------------------------------------------------------------------
+   Post-Intro Plain Background Login Gateway
+   -------------------------------------------------------------------------- */
+#login-gateway {
+  position: fixed;
+  inset: 0;
+  z-index: 4500;
+  background-color: var(--bg-dark);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  overflow-y: auto;
+  transition: opacity 0.4s ease, transform 0.4s ease, visibility 0.4s;
+}
+
+#login-gateway.hidden {
+  opacity: 0;
+  transform: scale(0.97);
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.login-gateway-card {
+  width: 100%;
+  max-width: 520px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-xl);
+  padding: 36px 32px;
+  box-shadow: var(--shadow-card);
+  position: relative;
+  transition: all var(--transition-normal);
+}
+
+.site-wrapper {
+  transition: opacity 0.35s ease;
+}
+
+.site-wrapper.hidden {
+  display: none !important;
+}
+
 /* Modals */
 .modal-overlay {
   position: fixed;

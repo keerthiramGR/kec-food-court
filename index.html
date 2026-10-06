@@ -209,233 +209,253 @@
   </div>
 
   <!-- =========================================================================
-       2. MAIN APPLICATION NAVIGATION BAR
+       2. POST-INTRO PLAIN BACKGROUND LOGIN GATEWAY (Site Hidden Until Login)
        ========================================================================= -->
-  <header class="main-nav">
-    <div class="nav-container">
-      <div class="nav-brand" onclick="window.switchAppPortal('student')">
-        <div class="nav-logo-wrap">
-          <img src="assets/logo.svg" alt="KEC Food Court Logo" style="width: 100%; height: 100%;" />
-        </div>
-        <div>
-          <div class="nav-brand-title">
-            <span class="gradient-text">KEC</span> FOOD COURT
-          </div>
-          <div class="nav-brand-sub">Kongu Campus Dining</div>
-        </div>
-      </div>
-
-      <!-- Portal Switcher Links (Student, Shop Owner, Super Admin) -->
-      <nav class="nav-links">
-        <button class="nav-link-btn active" data-portal="student">
-          <span>🎓</span> Student Portal
-        </button>
-        <button class="nav-link-btn" data-portal="owner">
-          <span>🏪</span> Shop Owner Portal
-        </button>
-        <button class="nav-link-btn" data-portal="admin">
-          <span>👑</span> Super Admin
-        </button>
-      </nav>
-
-      <!-- User Session Actions & Theme Toggle -->
-      <div class="nav-actions">
-        <!-- Light / Dark Mode Toggle Button -->
-        <button id="theme-toggle-btn" class="theme-toggle-btn" title="Toggle Light / Dark Mode">
-          <span class="theme-icon-sun">☀️</span>
-          <span class="theme-icon-moon">🌙</span>
-          <span id="theme-toggle-text" class="theme-text">Dark</span>
-        </button>
-
-        <!-- Replay Splash Intro button -->
-        <button class="btn btn-secondary btn-sm" onclick="window.replaySplashIntro()" title="Replay 3-4s Logo Intro Animation">
-          <span>✨</span> Intro
-        </button>
-
-        <div id="nav-user-section">
-          <!-- Populated by auth.js -->
-        </div>
-      </div>
+  <section id="login-gateway">
+    <!-- Top Bar with Theme Switcher -->
+    <div style="position: absolute; top: 20px; right: 24px; z-index: 10;">
+      <button id="gateway-theme-btn" class="theme-toggle-btn" title="Toggle Light / Dark Mode">
+        <span class="theme-icon-sun">☀️</span>
+        <span class="theme-icon-moon">🌙</span>
+        <span id="gateway-theme-text" class="theme-text">Dark</span>
+      </button>
     </div>
-  </header>
 
-  <!-- =========================================================================
-       3. DYNAMIC APP VIEWPORT
-       ========================================================================= -->
-  <main class="app-viewport" id="app-viewport">
-    <!-- Populated dynamically by student.js / owner.js / admin.js -->
-  </main>
-
-  <!-- =========================================================================
-       4. FLOATING CART & TOKEN GENERATOR BUTTON
-       ========================================================================= -->
-  <button id="cart-floating-btn" class="cart-floating-trigger" style="display: none;">
-    <span>🛒 Campus Tray</span>
-    <span id="cart-floating-count" class="cart-badge-count">0</span>
-  </button>
-
-  <!-- =========================================================================
-       5. MODAL: 3 ROLE LOGIN (Student, Shop Owner, Super Admin)
-       ========================================================================= -->
-  <div id="login-modal" class="modal-overlay">
-    <div class="modal-box">
-      <div class="modal-header">
-        <h2 class="modal-title">
-          <span>🔐</span> Portal Authentication
-        </h2>
-        <button class="modal-close-btn" onclick="window.closeLoginModal()">&times;</button>
+    <!-- Gateway Center Card -->
+    <div class="login-gateway-card">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <div style="width: 58px; height: 58px; margin: 0 auto 12px;">
+          <img src="assets/logo.svg" alt="KEC Logo" style="width: 100%; height: 100%;" />
+        </div>
+        <h1 style="font-size: 1.7rem; font-weight: 800; margin-bottom: 4px;">
+          <span class="gradient-text">KEC</span> FOOD COURT
+        </h1>
+        <p style="font-size: 0.82rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">
+          Kongu Engineering College • Portal Gateway
+        </p>
+        <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 6px;">
+          Choose your role to authenticate and enter your portal:
+        </p>
       </div>
 
-      <div class="modal-body">
-        <!-- 3 Role Tabs -->
-        <div class="role-tabs">
-          <button class="role-tab-btn active" data-role="student">
-            <span style="font-size: 1.2rem;">🎓</span>
-            <span>Student</span>
-          </button>
-          <button class="role-tab-btn" data-role="shop_owner">
-            <span style="font-size: 1.2rem;">🏪</span>
-            <span>Shop Owner</span>
-          </button>
-          <button class="role-tab-btn" data-role="super_admin">
-            <span style="font-size: 1.2rem;">👑</span>
-            <span>Super Admin</span>
+      <!-- 3 Role Switcher Tabs -->
+      <div class="role-tabs">
+        <button class="role-tab-btn active" data-role="student">
+          <span style="font-size: 1.25rem;">🎓</span>
+          <span>Student</span>
+        </button>
+        <button class="role-tab-btn" data-role="shop_owner">
+          <span style="font-size: 1.25rem;">🏪</span>
+          <span>Shop Manager</span>
+        </button>
+        <button class="role-tab-btn" data-role="super_admin">
+          <span style="font-size: 1.25rem;">👑</span>
+          <span>Super Admin</span>
+        </button>
+      </div>
+
+      <!-- Form 1: Student Login (Name, Roll No, Mobile No) -->
+      <form id="form-login-student" class="role-login-form" data-role="student">
+        <div class="demo-credentials-pill">
+          <div style="font-size: 0.78rem; color: var(--text-secondary);">
+            <strong>Demo:</strong> Aravind Kumar (Roll: 21EC108)
+          </div>
+          <button type="button" class="btn-demo-fill demo-cred-btn" data-role="student">
+            Auto-Fill
           </button>
         </div>
 
-        <!-- 1. Student Login Form -->
-        <form id="form-login-student" class="role-login-form" data-role="student">
-          <div class="demo-credentials-pill">
-            <div style="font-size: 0.8rem; color: var(--text-secondary);">
-              <strong>Demo Student:</strong> student@kec.ac.in (Pass: student123)
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label>Student Full Name *</label>
+          <input type="text" id="student-name" class="form-input" placeholder="e.g. Aravind Kumar" required />
+        </div>
+
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label>College Roll Number *</label>
+          <input type="text" id="student-roll" class="form-input" placeholder="e.g. 21EC108" required />
+        </div>
+
+        <div class="form-group" style="margin-bottom: 22px;">
+          <label>Mobile Number *</label>
+          <input type="tel" id="student-mobile" class="form-input" placeholder="e.g. 9876543210" pattern="[0-9]{10}" title="Please enter a 10-digit mobile number" required />
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%;">
+          <span>🎓</span> Enter Student Food Portal
+        </button>
+      </form>
+
+      <!-- Form 2: Shop Manager Login (Select Shop, Password) -->
+      <form id="form-login-owner" class="role-login-form" data-role="shop_owner" style="display: none;">
+        <div class="demo-credentials-pill">
+          <div style="font-size: 0.78rem; color: var(--text-secondary);">
+            <strong>Demo:</strong> Kongu Spice Kitchen (Pass: owner123)
+          </div>
+          <button type="button" class="btn-demo-fill demo-cred-btn" data-role="shop_owner">
+            Auto-Fill
+          </button>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label>Select Your Stall / Shop *</label>
+          <select id="shop-manager-select" class="form-select" required>
+            <!-- Populated dynamically with active stalls -->
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 22px;">
+          <label>Shop Manager Password *</label>
+          <input type="password" id="shop-manager-pass" class="form-input" placeholder="Enter shop manager password" required />
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%;">
+          <span>🏪</span> Access Shop Manager Portal
+        </button>
+      </form>
+
+      <!-- Form 3: Super Admin Login (Name, Ph No, Password) -->
+      <form id="form-login-admin" class="role-login-form" data-role="super_admin" style="display: none;">
+        <div class="demo-credentials-pill">
+          <div style="font-size: 0.78rem; color: var(--text-secondary);">
+            <strong>Demo:</strong> Dr. Balakrishnan (Pass: admin123)
+          </div>
+          <button type="button" class="btn-demo-fill demo-cred-btn" data-role="super_admin">
+            Auto-Fill
+          </button>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label>Administrator Full Name *</label>
+          <input type="text" id="admin-name" class="form-input" placeholder="e.g. Dr. Balakrishnan" required />
+        </div>
+
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label>Phone / Mobile Number *</label>
+          <input type="tel" id="admin-phone" class="form-input" placeholder="e.g. 9443322110" required />
+        </div>
+
+        <div class="form-group" style="margin-bottom: 22px;">
+          <label>Security Password *</label>
+          <input type="password" id="admin-pass" class="form-input" placeholder="Enter admin password" required />
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%;">
+          <span>👑</span> Enter Super Admin Command Center
+        </button>
+      </form>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       3. ACTUAL FOOD COURT WEB APPLICATION (Revealed Only After Login)
+       ========================================================================= -->
+  <div id="site-wrapper" class="site-wrapper hidden">
+    <!-- Navigation Bar -->
+    <header class="main-nav">
+      <div class="nav-container">
+        <div class="nav-brand" onclick="window.switchAppPortal('student')">
+          <div class="nav-logo-wrap">
+            <img src="assets/logo.svg" alt="KEC Food Court Logo" style="width: 100%; height: 100%;" />
+          </div>
+          <div>
+            <div class="nav-brand-title">
+              <span class="gradient-text">KEC</span> FOOD COURT
             </div>
-            <button type="button" class="btn-demo-fill demo-cred-btn" data-role="student">
-              Auto-Fill
-            </button>
+            <div class="nav-brand-sub">Kongu Campus Dining</div>
           </div>
+        </div>
 
-          <div class="form-group" style="margin-bottom: 16px;">
-            <label>Student College Email / Roll No</label>
-            <input type="text" id="student-email" class="form-input" placeholder="e.g. student@kec.ac.in or 21EC108" required />
-          </div>
-
-          <div class="form-group" style="margin-bottom: 22px;">
-            <label>Password</label>
-            <input type="password" id="student-pass" class="form-input" placeholder="Enter student password" required />
-          </div>
-
-          <button type="submit" class="btn btn-primary" style="width: 100%;">
-            <span>🎓</span> Enter Student Food Portal
+        <!-- Portal Switcher Links (Student, Shop Manager, Super Admin) -->
+        <nav class="nav-links">
+          <button class="nav-link-btn active" data-portal="student">
+            <span>🎓</span> Student Portal
           </button>
-        </form>
-
-        <!-- 2. Shop Owner Login Form -->
-        <form id="form-login-owner" class="role-login-form" data-role="shop_owner" style="display: none;">
-          <div class="demo-credentials-pill">
-            <div style="font-size: 0.8rem; color: var(--text-secondary);">
-              <strong>Demo Shop:</strong> spice@kecfood.in (Pass: owner123)
-            </div>
-            <button type="button" class="btn-demo-fill demo-cred-btn" data-role="shop_owner">
-              Auto-Fill
-            </button>
-          </div>
-
-          <div class="form-group" style="margin-bottom: 16px;">
-            <label>Registered Stall Email</label>
-            <input type="email" id="owner-email" class="form-input" placeholder="e.g. spice@kecfood.in or any created stall" required />
-          </div>
-
-          <div class="form-group" style="margin-bottom: 22px;">
-            <label>Portal Access Password</label>
-            <input type="password" id="owner-pass" class="form-input" placeholder="Enter stall owner password" required />
-          </div>
-
-          <button type="submit" class="btn btn-primary" style="width: 100%;">
-            <span>🏪</span> Access Stall Kitchen Portal
+          <button class="nav-link-btn" data-portal="owner">
+            <span>🏪</span> Shop Manager Portal
           </button>
-        </form>
-
-        <!-- 3. Super Admin Login Form -->
-        <form id="form-login-admin" class="role-login-form" data-role="super_admin" style="display: none;">
-          <div class="demo-credentials-pill">
-            <div style="font-size: 0.8rem; color: var(--text-secondary);">
-              <strong>Demo Super Admin:</strong> admin@kec.ac.in (Pass: admin123)
-            </div>
-            <button type="button" class="btn-demo-fill demo-cred-btn" data-role="super_admin">
-              Auto-Fill
-            </button>
-          </div>
-
-          <div class="form-group" style="margin-bottom: 16px;">
-            <label>Super Admin Email</label>
-            <input type="email" id="admin-email" class="form-input" placeholder="admin@kec.ac.in" required />
-          </div>
-
-          <div class="form-group" style="margin-bottom: 22px;">
-            <label>Admin Security Password</label>
-            <input type="password" id="admin-pass" class="form-input" placeholder="Enter admin password" required />
-          </div>
-
-          <button type="submit" class="btn btn-primary" style="width: 100%;">
-            <span>👑</span> Enter Command Center
+          <button class="nav-link-btn" data-portal="admin">
+            <span>👑</span> Super Admin
           </button>
-        </form>
+        </nav>
+
+        <!-- User Session Actions & Theme Toggle -->
+        <div class="nav-actions">
+          <!-- Light / Dark Mode Toggle Button -->
+          <button id="theme-toggle-btn" class="theme-toggle-btn" title="Toggle Light / Dark Mode">
+            <span class="theme-icon-sun">☀️</span>
+            <span class="theme-icon-moon">🌙</span>
+            <span id="theme-toggle-text" class="theme-text">Dark</span>
+          </button>
+
+          <!-- Replay Splash Intro button -->
+          <button class="btn btn-secondary btn-sm" onclick="window.replaySplashIntro()" title="Replay 3-4s Logo Intro Animation">
+            <span>✨</span> Intro
+          </button>
+
+          <div id="nav-user-section">
+            <!-- Populated by auth.js -->
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Viewport -->
+    <main class="app-viewport" id="app-viewport">
+      <!-- Populated dynamically by student.js / owner.js / admin.js -->
+    </main>
+
+    <!-- Floating Tray Button -->
+    <button id="cart-floating-btn" class="cart-floating-trigger" style="display: none;">
+      <span>🛒 Campus Tray</span>
+      <span id="cart-floating-count" class="cart-badge-count">0</span>
+    </button>
+
+    <!-- Modals -->
+    <!-- Stall Menu Modal -->
+    <div id="stall-menu-modal" class="modal-overlay">
+      <div class="modal-box" style="max-width: 920px; max-height: 88vh; display: flex; flex-direction: column;">
+        <div class="modal-header">
+          <h2 class="modal-title">
+            <span>🏪</span> Stall Delicacies & Menu
+          </h2>
+          <button class="modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body" id="stall-menu-content" style="overflow-y: auto;">
+          <!-- Populated by student.js -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Cart Modal -->
+    <div id="cart-modal" class="modal-overlay">
+      <div class="modal-box" style="max-width: 520px;">
+        <div class="modal-header">
+          <h2 class="modal-title">
+            <span>🛒</span> Campus Food Tray & Token Generator
+          </h2>
+          <button class="modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body" id="cart-modal-body">
+          <!-- Populated by app.js -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Generic Modal -->
+    <div id="generic-modal" class="modal-overlay">
+      <div class="modal-box">
+        <div class="modal-header">
+          <h2 class="modal-title" id="generic-modal-title">Dialog</h2>
+          <button class="modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body" id="generic-modal-body">
+          <!-- Populated dynamically -->
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- =========================================================================
-       6. MODAL: STALL MENU DETAILS
-       ========================================================================= -->
-  <div id="stall-menu-modal" class="modal-overlay">
-    <div class="modal-box" style="max-width: 760px; max-height: 85vh; display: flex; flex-direction: column;">
-      <div class="modal-header">
-        <h2 class="modal-title">
-          <span>🏪</span> Stall Delicacies & Menu
-        </h2>
-        <button class="modal-close-btn">&times;</button>
-      </div>
-      <div class="modal-body" id="stall-menu-content" style="overflow-y: auto;">
-        <!-- Populated by student.js -->
-      </div>
-    </div>
-  </div>
-
-  <!-- =========================================================================
-       7. MODAL: CAMPUS TRAY & TOKEN CHECKOUT
-       ========================================================================= -->
-  <div id="cart-modal" class="modal-overlay">
-    <div class="modal-box" style="max-width: 520px;">
-      <div class="modal-header">
-        <h2 class="modal-title">
-          <span>🛒</span> Campus Food Tray & Token Generator
-        </h2>
-        <button class="modal-close-btn">&times;</button>
-      </div>
-      <div class="modal-body" id="cart-modal-body">
-        <!-- Populated by app.js -->
-      </div>
-    </div>
-  </div>
-
-  <!-- =========================================================================
-       8. MODAL: GENERIC DIALOG (e.g. Add Dish)
-       ========================================================================= -->
-  <div id="generic-modal" class="modal-overlay">
-    <div class="modal-box">
-      <div class="modal-header">
-        <h2 class="modal-title" id="generic-modal-title">Dialog</h2>
-        <button class="modal-close-btn">&times;</button>
-      </div>
-      <div class="modal-body" id="generic-modal-body">
-        <!-- Populated dynamically -->
-      </div>
-    </div>
-  </div>
-
-  <!-- =========================================================================
-       9. TOAST NOTIFICATION CONTAINER
-       ========================================================================= -->
+  <!-- Toast Notification Container -->
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Main Application Script (ES Module) -->

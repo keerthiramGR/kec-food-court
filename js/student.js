@@ -37,29 +37,13 @@ export function renderStudentPortal(container, showToast, renderApp) {
           <span class="gradient-text">Order Smart, Dine Fresh.</span>
         </h1>
         <p class="portal-hero-desc">
-          Browse real-time stalls, order signature meals and bakery treats, and track your food preparation tokens in real time right from your classroom or hostel.
+          Browse real-time stalls, order signature meals and fresh juices & shakes, and track your food preparation tokens in real time right from your classroom or hostel.
         </p>
 
         <div style="display: flex; gap: 14px; flex-wrap: wrap;">
-          ${!isStudentLoggedIn ? `
-            <button class="btn btn-primary btn-lg" onclick="window.openLoginModal('student')">
-              <span>🎓</span> Student Login with Roll No
-            </button>
-            <button class="btn btn-secondary btn-lg" onclick="document.getElementById('stalls-section').scrollIntoView({behavior: 'smooth'})">
-              <span>🍔</span> Browse All Stalls
-            </button>
-          ` : `
-            <div style="display: flex; align-items: center; gap: 12px; background: rgba(255, 159, 28, 0.12); padding: 10px 18px; border-radius: var(--radius-md); border: 1px solid rgba(255,159,28,0.3);">
-              <span style="font-size: 1.4rem;">💳</span>
-              <div>
-                <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">Campus Meal Card Balance</div>
-                <div style="font-size: 1.25rem; font-weight: 800; color: var(--primary-gold);">₹${currentUser.walletBalance || 850}.00</div>
-              </div>
-            </div>
-            <button class="btn btn-outline-gold" onclick="document.getElementById('student-tokens-section').scrollIntoView({behavior: 'smooth'})">
-              <span>🎟️</span> Track My Tokens (${studentOrders.length})
-            </button>
-          `}
+          <button class="btn btn-primary btn-lg" onclick="document.getElementById('stalls-section').scrollIntoView({behavior: 'smooth'})">
+            <span>🍔</span> Explore Campus Stalls
+          </button>
         </div>
       </div>
     </div>
@@ -167,12 +151,9 @@ export function renderStudentPortal(container, showToast, renderApp) {
       <!-- Filter Categories -->
       <div class="student-filter-bar">
         <div class="filter-chips" id="category-filter-chips">
-          <button class="filter-chip ${currentCategory === 'all' ? 'active' : ''}" data-cat="all">🍽️ All Stalls</button>
-          <button class="filter-chip ${currentCategory === 'meals' ? 'active' : ''}" data-cat="meals">🍛 Meals & Biryani</button>
-          <button class="filter-chip ${currentCategory === 'cafe' ? 'active' : ''}" data-cat="cafe">☕ Cafe & Bakes</button>
-          <button class="filter-chip ${currentCategory === 'tiffin' ? 'active' : ''}" data-cat="tiffin">🥞 South Tiffin</button>
-          <button class="filter-chip ${currentCategory === 'juices' ? 'active' : ''}" data-cat="juices">🥤 Juices & Shakes</button>
-          <button class="filter-chip ${currentCategory === 'chinese' ? 'active' : ''}" data-cat="chinese">🍜 Chinese & Fast Food</button>
+          <button class="filter-chip ${currentCategory === 'all' ? 'active' : ''}" data-cat="all">🍽️ All Stalls (2)</button>
+          <button class="filter-chip ${currentCategory === 'food' ? 'active' : ''}" data-cat="food">🍛 Food</button>
+          <button class="filter-chip ${currentCategory === 'juice' ? 'active' : ''}" data-cat="juice">🥤 Juice</button>
         </div>
       </div>
 
@@ -300,76 +281,207 @@ export function renderStudentPortal(container, showToast, renderApp) {
     const modalContent = document.getElementById('stall-menu-content');
     if (!modal || !modalContent) return;
 
-    modalContent.innerHTML = `
-      <div style="display: flex; gap: 20px; align-items: center; margin-bottom: 24px; padding-bottom: 18px; border-bottom: 1px solid var(--border-glass);">
-        <div style="width: 68px; height: 68px; border-radius: var(--radius-md); background: ${shop.accentColor || '#FF9F1C'}; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; flex-shrink: 0;">
-          ${shop.icon || '🏪'}
-        </div>
-        <div style="flex-grow: 1;">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <h2 style="font-size: 1.5rem;">${shop.name}</h2>
-            <span class="badge badge-gold">${shop.stallNumber}</span>
-            <span class="badge ${shop.isOpen ? 'badge-emerald' : 'badge-rose'}">${shop.isOpen ? 'Open' : 'Closed'}</span>
-          </div>
-          <p style="color: var(--text-secondary); font-size: 0.9rem;">${shop.tagline}</p>
-          <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Managed by: ${shop.ownerName} • Contact: ${shop.email}</div>
-        </div>
-      </div>
+    let modalCategory = 'all';
+    let modalSearch = '';
+    let modalDiet = 'all'; // 'all', 'veg', 'non-veg'
 
-      <h3 style="font-size: 1.15rem; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
-        <span>🍽️</span> Stall Menu & Live Kitchen Ordering
-      </h3>
+    // Extract unique categories from menu
+    const menuCategories = ['all', ...new Set((shop.menu || []).map(m => m.category).filter(Boolean))];
 
-      <div class="menu-items-grid">
-        ${(!shop.menu || shop.menu.length === 0) ? `
-          <p style="color: var(--text-secondary);">No menu items added for this stall yet.</p>
-        ` : shop.menu.map(item => {
-          return `
-            <div class="menu-item-card">
-              <img src="${item.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300'}" alt="${item.name}" class="menu-item-img" />
-              <div class="menu-item-details">
-                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
-                  <span class="diet-indicator ${item.isVeg ? 'veg' : 'non-veg'}" title="${item.isVeg ? 'Vegetarian' : 'Non-Vegetarian'}"></span>
-                  <span class="menu-item-name">${item.name}</span>
-                </div>
-                <div class="menu-item-price">₹${item.price}</div>
-                <div class="menu-item-tags">
-                  <span style="color: var(--text-secondary);">⏱️ ${item.prepTime || '10m'}</span>
-                  ${item.badge ? `<span class="badge badge-gold" style="padding: 2px 6px; font-size: 0.68rem;">${item.badge}</span>` : ''}
-                  ${!item.isAvailable ? `<span class="badge badge-rose" style="padding: 2px 6px; font-size: 0.68rem;">Sold Out</span>` : ''}
-                </div>
-              </div>
-
-              <div>
-                ${item.isAvailable ? `
-                  <button class="btn btn-primary btn-sm btn-add-item-cart" data-item-id="${item.id}" data-shop-id="${shop.id}">
-                    + Add
-                  </button>
-                ` : `
-                  <button class="btn btn-secondary btn-sm" disabled style="opacity: 0.5; cursor: not-allowed;">
-                    Out
-                  </button>
-                `}
-              </div>
-            </div>
-          `;
-        }).join('')}
-      </div>
-    `;
-
-    // Bind Add to Cart buttons
-    modalContent.querySelectorAll('.btn-add-item-cart').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const itemId = btn.dataset.itemId;
-        const targetItem = shop.menu.find(m => m.id === itemId);
-        if (targetItem) {
-          state.addToCart(targetItem, shop);
-          showToast(`Added "${targetItem.name}" to campus tray!`, 'success');
-          updateCartBadge();
-        }
+    function renderModalBody() {
+      const items = (shop.menu || []).filter(item => {
+        const matchesCategory = modalCategory === 'all' || item.category === modalCategory;
+        const matchesSearch = modalSearch === '' || 
+          item.name.toLowerCase().includes(modalSearch.toLowerCase()) ||
+          (item.badge && item.badge.toLowerCase().includes(modalSearch.toLowerCase())) ||
+          (item.category && item.category.toLowerCase().includes(modalSearch.toLowerCase()));
+        const matchesDiet = modalDiet === 'all' || 
+          (modalDiet === 'veg' && item.isVeg) || 
+          (modalDiet === 'non-veg' && !item.isVeg);
+        return matchesCategory && matchesSearch && matchesDiet;
       });
-    });
 
+      modalContent.innerHTML = `
+        <!-- Shop Header & Official Price List Card Banner -->
+        <div style="display: flex; gap: 20px; align-items: center; margin-bottom: 20px; padding-bottom: 18px; border-bottom: 1px solid var(--border-glass); flex-wrap: wrap;">
+          <div style="width: 68px; height: 68px; border-radius: var(--radius-md); background: ${shop.accentColor || '#FF9F1C'}; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; flex-shrink: 0; box-shadow: 0 4px 14px rgba(255, 159, 28, 0.35);">
+            ${shop.icon || '🍛'}
+          </div>
+          <div style="flex-grow: 1;">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+              <h2 style="font-size: 1.6rem; font-weight: 800;">${shop.name}</h2>
+              <span class="badge badge-gold">${shop.stallNumber}</span>
+              <span class="badge ${shop.isOpen ? 'badge-emerald' : 'badge-rose'}">${shop.isOpen ? '🟢 Open Now' : '🔴 Closed'}</span>
+            </div>
+            <p style="color: var(--text-secondary); font-size: 0.92rem; margin-top: 2px;">${shop.tagline}</p>
+            <div style="display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.82rem; color: var(--text-muted); margin-top: 6px;">
+              <span>👤 Managed by: <strong>${shop.ownerName}</strong></span>
+              <span>📞 Stall Phone: <strong style="color: var(--primary-gold);">${shop.phone || '98427 06474 / 94429 06474'}</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Official Food Court Notice Pill -->
+        <div style="background: rgba(255, 159, 28, 0.12); border: 1px dashed rgba(255, 159, 28, 0.4); border-radius: var(--radius-md); padding: 10px 16px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+          <div style="font-size: 0.88rem; color: var(--text-main); font-weight: 600;">
+            <span>📋 FOOD COURT OFFICIAL MENU</span> • Total Items: <strong style="color: var(--primary-gold);">${shop.menu ? shop.menu.length : 0}</strong>
+          </div>
+          <div style="font-size: 0.82rem; color: var(--text-secondary);">
+            📦 <strong style="color: var(--accent-rose);">Parcel Charges Extra</strong> • 📞 For Orders: <strong>98427 06474 / 94429 06474</strong>
+          </div>
+        </div>
+
+        <!-- In-Modal Filter Bar: Search + Diet Toggle -->
+        <div style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
+          <div class="search-input-wrap" style="flex: 1; min-width: 240px; margin-bottom: 0;">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="modal-menu-search-input" placeholder="Search dish (e.g. Parotta, Kothu, Roast, Biryani, 65...)" value="${modalSearch}" />
+          </div>
+
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button class="btn btn-sm ${modalDiet === 'all' ? 'btn-primary' : 'btn-secondary'}" data-diet="all" id="diet-all-btn">
+              All Dishes
+            </button>
+            <button class="btn btn-sm ${modalDiet === 'veg' ? 'btn-primary' : 'btn-secondary'}" data-diet="veg" id="diet-veg-btn" style="border-color: #10B981;">
+              🟢 Veg Only
+            </button>
+            <button class="btn btn-sm ${modalDiet === 'non-veg' ? 'btn-primary' : 'btn-secondary'}" data-diet="non-veg" id="diet-nonveg-btn" style="border-color: #EF4444;">
+              🔴 Non-Veg
+            </button>
+          </div>
+        </div>
+
+        <!-- Category Sub-Tabs -->
+        <div style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 18px; scrollbar-width: thin;">
+          ${menuCategories.map(cat => {
+            const count = cat === 'all' 
+              ? (shop.menu || []).length 
+              : (shop.menu || []).filter(m => m.category === cat).length;
+            const label = cat === 'all' ? 'All Dishes' : cat;
+            const isActive = modalCategory === cat;
+            return `
+              <button class="filter-chip modal-cat-chip ${isActive ? 'active' : ''}" data-cat="${cat}" style="white-space: nowrap; font-size: 0.82rem; padding: 6px 14px;">
+                ${label} (${count})
+              </button>
+            `;
+          }).join('')}
+        </div>
+
+        <!-- Showing Result Count -->
+        <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 14px; display: flex; justify-content: space-between;">
+          <span>Showing <strong>${items.length}</strong> delicacies</span>
+          ${modalCategory !== 'all' || modalSearch || modalDiet !== 'all' ? `
+            <a href="javascript:void(0)" id="reset-modal-filters" style="color: var(--primary-gold); text-decoration: underline;">Reset Filters</a>
+          ` : ''}
+        </div>
+
+        <!-- Items Grid -->
+        <div class="menu-items-grid" id="modal-items-grid">
+          ${items.length === 0 ? `
+            <div class="glass-panel" style="padding: 36px; text-align: center; grid-column: 1 / -1; color: var(--text-secondary);">
+              <p style="font-size: 1.05rem; margin-bottom: 8px;">No delicacies found matching your search.</p>
+              <button class="btn btn-secondary btn-sm" id="btn-clear-modal-search">Clear Search</button>
+            </div>
+          ` : items.map(item => {
+            return `
+              <div class="menu-item-card">
+                <img src="${item.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300'}" alt="${item.name}" class="menu-item-img" loading="lazy" />
+                <div class="menu-item-details">
+                  <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+                    <span class="diet-indicator ${item.isVeg ? 'veg' : 'non-veg'}" title="${item.isVeg ? 'Vegetarian' : 'Non-Vegetarian'}"></span>
+                    <span class="menu-item-name">${item.name}</span>
+                  </div>
+                  <div class="menu-item-price">₹${item.price}</div>
+                  <div class="menu-item-tags">
+                    <span style="color: var(--text-secondary);">⏱️ ${item.prepTime || '10m'}</span>
+                    ${item.badge ? `<span class="badge badge-gold" style="padding: 2px 6px; font-size: 0.68rem;">${item.badge}</span>` : ''}
+                    ${item.category ? `<span style="font-size: 0.7rem; color: var(--text-muted); background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 4px;">${item.category}</span>` : ''}
+                    ${!item.isAvailable ? `<span class="badge badge-rose" style="padding: 2px 6px; font-size: 0.68rem;">Sold Out</span>` : ''}
+                  </div>
+                </div>
+
+                <div>
+                  ${item.isAvailable ? `
+                    <button class="btn btn-primary btn-sm btn-add-item-cart" data-item-id="${item.id}" data-shop-id="${shop.id}">
+                      + Add
+                    </button>
+                  ` : `
+                    <button class="btn btn-secondary btn-sm" disabled style="opacity: 0.5; cursor: not-allowed;">
+                      Out
+                    </button>
+                  `}
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+
+      // Bind Search Input
+      const searchIn = modalContent.querySelector('#modal-menu-search-input');
+      if (searchIn) {
+        searchIn.addEventListener('input', (e) => {
+          modalSearch = e.target.value;
+          renderModalBody();
+          // refocus and keep cursor at end
+          const newIn = modalContent.querySelector('#modal-menu-search-input');
+          if (newIn) {
+            newIn.focus();
+            newIn.setSelectionRange(newIn.value.length, newIn.value.length);
+          }
+        });
+      }
+
+      // Bind Diet Buttons
+      modalContent.querySelectorAll('#diet-all-btn, #diet-veg-btn, #diet-nonveg-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          modalDiet = btn.dataset.diet;
+          renderModalBody();
+        });
+      });
+
+      // Bind Category Chips
+      modalContent.querySelectorAll('.modal-cat-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          modalCategory = chip.dataset.cat;
+          renderModalBody();
+        });
+      });
+
+      // Reset filter link
+      const resetLink = modalContent.querySelector('#reset-modal-filters');
+      if (resetLink) {
+        resetLink.addEventListener('click', () => {
+          modalCategory = 'all';
+          modalSearch = '';
+          modalDiet = 'all';
+          renderModalBody();
+        });
+      }
+
+      const clearSearchBtn = modalContent.querySelector('#btn-clear-modal-search');
+      if (clearSearchBtn) {
+        clearSearchBtn.addEventListener('click', () => {
+          modalSearch = '';
+          renderModalBody();
+        });
+      }
+
+      // Bind Add to Cart buttons
+      modalContent.querySelectorAll('.btn-add-item-cart').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const itemId = btn.dataset.itemId;
+          const targetItem = shop.menu.find(m => m.id === itemId);
+          if (targetItem) {
+            state.addToCart(targetItem, shop);
+            showToast(`Added "${targetItem.name}" (₹${targetItem.price}) to tray!`, 'success');
+            updateCartBadge();
+          }
+        });
+      });
+    }
+
+    renderModalBody();
     modal.classList.add('open');
   };
 

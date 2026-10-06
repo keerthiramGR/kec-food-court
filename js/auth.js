@@ -2,13 +2,38 @@ import { state } from './state.js';
 import { DEFAULT_USERS } from './data.js';
 
 export function initAuth(showToast, renderApp) {
-  const loginModal = document.getElementById('login-modal');
-  const navUserSection = document.getElementById('nav-user-section');
+  const loginGateway = document.getElementById('login-gateway');
+  const siteWrapper = document.getElementById('site-wrapper');
   const roleTabs = document.querySelectorAll('.role-tab-btn');
   const loginForms = document.querySelectorAll('.role-login-form');
   const demoFillBtns = document.querySelectorAll('.btn-demo-fill');
 
-  // Handle Role Tab Switching inside Login Modal
+  // Populate Shop Manager dropdown with current shops
+  function populateShopManagerDropdown() {
+    const shopSelect = document.getElementById('shop-manager-select');
+    if (shopSelect) {
+      const shops = state.getShops();
+      shopSelect.innerHTML = shops.map(s => `
+        <option value="${s.id}">${s.stallNumber} - ${s.name} (${s.ownerName})</option>
+      `).join('');
+    }
+  }
+
+  // Gateway Theme Toggle
+  const gatewayThemeBtn = document.getElementById('gateway-theme-btn');
+  const gatewayThemeText = document.getElementById('gateway-theme-text');
+  if (gatewayThemeBtn) {
+    gatewayThemeBtn.addEventListener('click', () => {
+      const isDark = document.documentElement.classList.toggle('dark');
+      localStorage.setItem('kec_foodcourt_theme', isDark ? 'dark' : 'light');
+      if (gatewayThemeText) gatewayThemeText.textContent = isDark ? 'Dark' : 'Light';
+      const mainThemeText = document.getElementById('theme-toggle-text');
+      if (mainThemeText) mainThemeText.textContent = isDark ? 'Dark' : 'Light';
+      showToast(`Switched to ${isDark ? '🌙 Dark Mode' : '☀️ Light Mode'}`, 'info');
+    });
+  }
+
+  // Handle Role Tab Switching inside Login Gateway
   roleTabs.forEach(tab => {
     tab.addEventListener('click', () => {
       const targetRole = tab.dataset.role;
@@ -22,6 +47,10 @@ export function initAuth(showToast, renderApp) {
           form.style.display = 'none';
         }
       });
+
+      if (targetRole === 'shop_owner') {
+        populateShopManagerDropdown();
+      }
     });
   });
 
@@ -30,67 +59,97 @@ export function initAuth(showToast, renderApp) {
     btn.addEventListener('click', () => {
       const role = btn.dataset.role;
       if (role === 'student') {
-        const emailInput = document.getElementById('student-email');
-        const passInput = document.getElementById('student-pass');
-        if (emailInput && passInput) {
-          emailInput.value = 'student@kec.ac.in';
-          passInput.value = 'student123';
-        }
+        const nameIn = document.getElementById('student-name');
+        const rollIn = document.getElementById('student-roll');
+        const mobileIn = document.getElementById('student-mobile');
+        if (nameIn) nameIn.value = 'Aravind Kumar';
+        if (rollIn) rollIn.value = '21EC108';
+        if (mobileIn) mobileIn.value = '9876543210';
       } else if (role === 'shop_owner') {
-        const emailInput = document.getElementById('owner-email');
-        const passInput = document.getElementById('owner-pass');
-        if (emailInput && passInput) {
-          emailInput.value = 'spice@kecfood.in';
-          passInput.value = 'owner123';
-        }
+        populateShopManagerDropdown();
+        const passIn = document.getElementById('shop-manager-pass');
+        if (passIn) passIn.value = 'owner123';
       } else if (role === 'super_admin') {
-        const emailInput = document.getElementById('admin-email');
-        const passInput = document.getElementById('admin-pass');
-        if (emailInput && passInput) {
-          emailInput.value = 'admin@kec.ac.in';
-          passInput.value = 'admin123';
-        }
+        const nameIn = document.getElementById('admin-name');
+        const phoneIn = document.getElementById('admin-phone');
+        const passIn = document.getElementById('admin-pass');
+        if (nameIn) nameIn.value = 'Dr. Balakrishnan';
+        if (phoneIn) phoneIn.value = '9443322110';
+        if (passIn) passIn.value = 'admin123';
       }
     });
   });
 
-  // Handle Form Submissions
-  // 1. Student Login
+  // Gateway Transition Helpers
+  window.showLoginGateway = function(preferredRole = 'student') {
+    if (loginGateway) loginGateway.classList.remove('hidden');
+    if (siteWrapper) siteWrapper.classList.add('hidden');
+    populateShopManagerDropdown();
+    const targetTab = document.querySelector(`.role-tab-btn[data-role="${preferredRole}"]`);
+    if (targetTab) {
+      targetTab.click();
+    }
+  };
+
+  window.hideLoginGateway = function() {
+    if (loginGateway) loginGateway.classList.add('hidden');
+    if (siteWrapper) siteWrapper.classList.remove('hidden');
+  };
+
+  window.openLoginModal = function(preferredRole = 'student') {
+    window.showLoginGateway(preferredRole);
+  };
+
+  // 1. Student Login Form Submission (Name, Roll No, Mobile No)
   const studentForm = document.getElementById('form-login-student');
   if (studentForm) {
     studentForm.addEventListener('submit', (e) => {
       e.preventDefault();
-      const email = document.getElementById('student-email').value.trim();
-      const pass = document.getElementById('student-pass').value.trim();
+      const name = document.getElementById('student-name').value.trim();
+      const rollNo = document.getElementById('student-roll').value.trim().toUpperCase();
+      const mobile = document.getElementById('student-mobile').value.trim();
 
-      if ((email === 'student@kec.ac.in' || email.includes('kec.ac.in')) && pass === 'student123') {
-        state.login({
-          ...DEFAULT_USERS.demoStudent,
-          email: email,
-          loginTime: Date.now()
-        });
-        closeLoginModal();
-        showToast('Welcome back, Aravind! (Student Portal Active)', 'success');
-        renderApp();
-      } else {
-        showToast('Invalid student credentials. Use demo: student@kec.ac.in / student123', 'error');
+      if (!name || !rollNo || !mobile) {
+        showToast('Please fill in Name, Roll Number, and Mobile Number', 'error');
+        return;
       }
+
+      state.login({
+        role: 'student',
+        name: name,
+        rollNo: rollNo,
+        mobile: mobile,
+        department: "Electronics & Communication Engg",
+        year: "Campus Diner",
+        walletBalance: 850,
+        avatar: "🎓",
+        loginTime: Date.now()
+      });
+
+      window.hideLoginGateway();
+      showToast(`Welcome, ${name}! (${rollNo}) - Navigating to Student Portal`, 'success');
+      window.switchAppPortal('student');
     });
   }
 
-  // 2. Shop Owner Login
+  // 2. Shop Manager Login Form Submission (Selecting their shop, Password)
   const ownerForm = document.getElementById('form-login-owner');
   if (ownerForm) {
     ownerForm.addEventListener('submit', (e) => {
       e.preventDefault();
-      const email = document.getElementById('owner-email').value.trim();
-      const pass = document.getElementById('owner-pass').value.trim();
+      const shopSelect = document.getElementById('shop-manager-select');
+      const pass = document.getElementById('shop-manager-pass').value.trim();
+      const selectedShopId = shopSelect ? shopSelect.value : null;
 
-      // Check across all shops in state (including dynamically created ones!)
       const shops = state.getShops();
-      const matchedShop = shops.find(s => s.email.toLowerCase() === email.toLowerCase() && s.password === pass);
+      const matchedShop = shops.find(s => s.id === selectedShopId);
 
-      if (matchedShop) {
+      if (!matchedShop) {
+        showToast('Please select a valid stall', 'error');
+        return;
+      }
+
+      if (pass === matchedShop.password || pass === 'owner123') {
         state.login({
           role: 'shop_owner',
           shopId: matchedShop.id,
@@ -101,66 +160,63 @@ export function initAuth(showToast, renderApp) {
           icon: matchedShop.icon || '🏪',
           loginTime: Date.now()
         });
-        closeLoginModal();
-        showToast(`Welcome ${matchedShop.ownerName}! (${matchedShop.name} Portal Active)`, 'success');
-        renderApp();
+
+        window.hideLoginGateway();
+        showToast(`Welcome ${matchedShop.ownerName}! Manager portal for ${matchedShop.name} active.`, 'success');
+        window.switchAppPortal('owner');
       } else {
-        showToast('Stall credentials not matched. Use demo: spice@kecfood.in / owner123', 'error');
+        showToast(`Invalid password for ${matchedShop.name}. Use demo: owner123`, 'error');
       }
     });
   }
 
-  // 3. Super Admin Login
+  // 3. Super Admin Login Form Submission (Name, Ph No, Password)
   const adminForm = document.getElementById('form-login-admin');
   if (adminForm) {
     adminForm.addEventListener('submit', (e) => {
       e.preventDefault();
-      const email = document.getElementById('admin-email').value.trim();
+      const name = document.getElementById('admin-name').value.trim();
+      const phone = document.getElementById('admin-phone').value.trim();
       const pass = document.getElementById('admin-pass').value.trim();
 
-      if (email === DEFAULT_USERS.superAdmin.email && pass === DEFAULT_USERS.superAdmin.password) {
+      if (!name || !phone || !pass) {
+        showToast('Please enter Name, Phone Number, and Password', 'error');
+        return;
+      }
+
+      if (pass === 'admin123') {
         state.login({
-          ...DEFAULT_USERS.superAdmin,
+          role: 'super_admin',
+          name: name,
+          phone: phone,
+          email: 'admin@kec.ac.in',
+          designation: 'Director of Food Court Facilities',
+          avatar: '👑',
           loginTime: Date.now()
         });
-        closeLoginModal();
-        showToast('Welcome, Super Admin! (Master Food Court Command Center)', 'success');
-        renderApp();
+
+        window.hideLoginGateway();
+        showToast(`Welcome, ${name}! Navigating to Super Admin Command Center`, 'success');
+        window.switchAppPortal('admin');
       } else {
-        showToast('Invalid Super Admin credentials. Use: admin@kec.ac.in / admin123', 'error');
+        showToast('Invalid Super Admin security password. Use demo: admin123', 'error');
       }
     });
   }
 
-  // Window helper to open login modal with a preselected role tab
-  window.openLoginModal = function(preferredRole = 'student') {
-    if (loginModal) {
-      loginModal.classList.add('open');
-      const targetTab = document.querySelector(`.role-tab-btn[data-role="${preferredRole}"]`);
-      if (targetTab) {
-        targetTab.click();
-      }
-    }
-  };
-
-  window.closeLoginModal = function() {
-    if (loginModal) {
-      loginModal.classList.remove('open');
-    }
-  };
-
+  // Logout Handler
   window.handleLogout = function() {
     state.logout();
-    showToast('Logged out safely. Viewing as campus guest.', 'info');
+    showToast('Logged out. Please select your portal.', 'info');
+    window.showLoginGateway('student');
     renderApp();
   };
 
-  // Close modal when clicking on backdrop
-  if (loginModal) {
-    loginModal.addEventListener('click', (e) => {
-      if (e.target === loginModal) {
-        closeLoginModal();
-      }
-    });
+  // Initial check on load: If user is not logged in, ensure gateway is visible and site is hidden
+  const currentUser = state.getCurrentUser();
+  if (!currentUser) {
+    window.showLoginGateway('student');
+  } else {
+    window.hideLoginGateway();
   }
 }
