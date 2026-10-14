@@ -44,9 +44,18 @@ export function playOrderAlertSound() {
 }
 
 // ---------------------------------------------------------------------------
+// 1b. Stall Auto-Accept Orders Setting (Enabled by default)
+// ---------------------------------------------------------------------------
+export function isShopAutoAcceptEnabled(shopId) {
+  if (!shopId) return true;
+  const val = localStorage.getItem(`kec_owner_auto_accept_${shopId}`);
+  return val === null ? true : val === 'true';
+}
+
+// ---------------------------------------------------------------------------
 // 2. Incoming Order Pop-up Notification Modal
 // ---------------------------------------------------------------------------
-export function showIncomingOrderPopup(order, showToast, renderApp) {
+export function showIncomingOrderPopup(order, showToast, renderApp, isAutoAccepted = true) {
   playOrderAlertSound();
 
   let modal = document.getElementById('owner-order-alert-modal');
@@ -64,69 +73,143 @@ export function showIncomingOrderPopup(order, showToast, renderApp) {
     </div>
   `).join('');
 
-  modal.innerHTML = `
-    <div class="modal-box order-alert-box" style="max-width: 480px; text-align: center; border-radius: var(--radius-lg); padding: 26px;">
-      <div style="font-size: 3.2rem; margin-bottom: 2px; display: inline-block; animation: ringBell 0.9s ease infinite alternate;">🔔</div>
-      <div style="margin-bottom: 8px;">
-        <span class="badge badge-gold" style="font-size: 0.8rem; padding: 4px 14px; letter-spacing: 1px; font-weight: 800;">
-          NEW ORDER INCOMING!
-        </span>
-      </div>
-
-      <div style="font-size: 2.2rem; font-weight: 900; color: var(--primary-gold); font-family: var(--font-mono); line-height: 1.1; margin-bottom: 4px;">
-        ${order.tokenNumber}
-      </div>
-      <div style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 16px;">
-        Order #${order.id} • <span class="badge badge-emerald" style="font-size: 0.72rem;">${order.diningType || 'Dine-In'}</span>
-      </div>
-
-      <div style="background: rgba(0,0,0,0.35); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 20px; border: 1px solid var(--border-glass); text-align: left;">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.86rem;">
-          <span style="color: var(--text-secondary);">Student:</span>
-          <strong style="color: #FFF;">${escapeHtml(order.studentName || 'Student')} (${escapeHtml(order.studentRoll || 'Campus')})</strong>
+  if (isAutoAccepted) {
+    modal.innerHTML = `
+      <div class="modal-box order-alert-box" style="max-width: 480px; text-align: center; border-radius: var(--radius-lg); padding: 26px;">
+        <div style="font-size: 3.2rem; margin-bottom: 2px; display: inline-block; animation: ringBell 0.9s ease infinite alternate;">🔔</div>
+        <div style="margin-bottom: 8px;">
+          <span class="badge badge-emerald" style="font-size: 0.82rem; padding: 5px 16px; letter-spacing: 0.5px; font-weight: 800;">
+            ⚡ ORDER AUTO-ACCEPTED
+          </span>
         </div>
 
-        <div style="font-size: 0.76rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 6px;">
-          Ordered Food Dishes:
+        <div style="font-size: 2.3rem; font-weight: 900; color: var(--primary-gold); font-family: var(--font-mono); line-height: 1.1; margin-bottom: 4px;">
+          ${order.tokenNumber}
         </div>
-        <div style="margin-bottom: 12px;">
-          ${itemsListHtml}
+        <div style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;">
+          <span>Order #${order.id}</span> • 
+          <span class="badge badge-cyan" style="font-size: 0.74rem;">🔥 Kitchen Preparing</span> • 
+          <span class="badge badge-gold" style="font-size: 0.74rem;">${order.diningType || 'Dine-In'}</span>
         </div>
 
-        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid var(--border-glass); font-size: 1.15rem; font-weight: 800;">
-          <span style="color: #FFF;">Total Amount:</span>
-          <span style="color: var(--primary-gold);">₹${order.totalAmount}</span>
+        <div style="background: rgba(0,0,0,0.35); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 18px; border: 1px solid var(--border-glass); text-align: left;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.86rem;">
+            <span style="color: var(--text-secondary);">Student:</span>
+            <strong style="color: #FFF;">${escapeHtml(order.studentName || 'Student')} (${escapeHtml(order.studentRoll || 'Campus')})</strong>
+          </div>
+
+          <div style="font-size: 0.76rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 6px;">
+            Ordered Food Dishes:
+          </div>
+          <div style="margin-bottom: 12px;">
+            ${itemsListHtml}
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid var(--border-glass); font-size: 1.15rem; font-weight: 800;">
+            <span style="color: #FFF;">Total Amount:</span>
+            <span style="color: var(--primary-gold);">₹${order.totalAmount}</span>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 12px;">
+          <button class="btn btn-primary btn-lg" id="btn-popup-dismiss" style="flex: 1; font-weight: 800;">
+            👨‍🍳 Acknowledged (In Kitchen)
+          </button>
+        </div>
+        <div style="margin-top: 10px; font-size: 0.8rem; color: var(--text-muted);">
+          Auto-closing in <span id="auto-close-countdown" style="font-weight: 700; color: var(--primary-gold);">8</span>s...
         </div>
       </div>
+    `;
 
-      <div style="display: flex; gap: 12px;">
-        <button class="btn btn-primary btn-lg" id="btn-popup-start-cooking" style="flex: 1; font-weight: 800;">
-          🔥 Accept & Start Cooking
-        </button>
-        <button class="btn btn-secondary btn-lg" id="btn-popup-dismiss" style="min-width: 100px;">
-          Dismiss
-        </button>
+    modal.classList.add('open');
+
+    if (window._orderPopupTimer) {
+      clearInterval(window._orderPopupTimer);
+    }
+    let remainingSecs = 8;
+    const countdownEl = modal.querySelector('#auto-close-countdown');
+    window._orderPopupTimer = setInterval(() => {
+      remainingSecs--;
+      if (countdownEl) countdownEl.textContent = remainingSecs;
+      if (remainingSecs <= 0) {
+        clearInterval(window._orderPopupTimer);
+        modal.classList.remove('open');
+      }
+    }, 1000);
+
+    const dismissBtn = modal.querySelector('#btn-popup-dismiss');
+    if (dismissBtn) {
+      dismissBtn.addEventListener('click', () => {
+        if (window._orderPopupTimer) clearInterval(window._orderPopupTimer);
+        modal.classList.remove('open');
+      });
+    }
+  } else {
+    modal.innerHTML = `
+      <div class="modal-box order-alert-box" style="max-width: 480px; text-align: center; border-radius: var(--radius-lg); padding: 26px;">
+        <div style="font-size: 3.2rem; margin-bottom: 2px; display: inline-block; animation: ringBell 0.9s ease infinite alternate;">🔔</div>
+        <div style="margin-bottom: 8px;">
+          <span class="badge badge-gold" style="font-size: 0.8rem; padding: 4px 14px; letter-spacing: 1px; font-weight: 800;">
+            NEW ORDER INCOMING!
+          </span>
+        </div>
+
+        <div style="font-size: 2.2rem; font-weight: 900; color: var(--primary-gold); font-family: var(--font-mono); line-height: 1.1; margin-bottom: 4px;">
+          ${order.tokenNumber}
+        </div>
+        <div style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 16px;">
+          Order #${order.id} • <span class="badge badge-emerald" style="font-size: 0.72rem;">${order.diningType || 'Dine-In'}</span>
+        </div>
+
+        <div style="background: rgba(0,0,0,0.35); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 20px; border: 1px solid var(--border-glass); text-align: left;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.86rem;">
+            <span style="color: var(--text-secondary);">Student:</span>
+            <strong style="color: #FFF;">${escapeHtml(order.studentName || 'Student')} (${escapeHtml(order.studentRoll || 'Campus')})</strong>
+          </div>
+
+          <div style="font-size: 0.76rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 6px;">
+            Ordered Food Dishes:
+          </div>
+          <div style="margin-bottom: 12px;">
+            ${itemsListHtml}
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid var(--border-glass); font-size: 1.15rem; font-weight: 800;">
+            <span style="color: #FFF;">Total Amount:</span>
+            <span style="color: var(--primary-gold);">₹${order.totalAmount}</span>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 12px;">
+          <button class="btn btn-primary btn-lg" id="btn-popup-start-cooking" style="flex: 1; font-weight: 800;">
+            🔥 Accept & Start Cooking
+          </button>
+          <button class="btn btn-secondary btn-lg" id="btn-popup-dismiss" style="min-width: 100px;">
+            Dismiss
+          </button>
+        </div>
       </div>
-    </div>
-  `;
+    `;
 
-  modal.classList.add('open');
+    modal.classList.add('open');
 
-  const startBtn = modal.querySelector('#btn-popup-start-cooking');
-  if (startBtn) {
-    startBtn.addEventListener('click', () => {
-      state.updateOrderStatus(order.id, 'Kitchen Preparing');
-      modal.classList.remove('open');
-      if (showToast) showToast(`Token ${order.tokenNumber} moved to Kitchen Preparing!`, 'success');
-      if (renderApp) renderApp();
-    });
-  }
+    const startBtn = modal.querySelector('#btn-popup-start-cooking');
+    if (startBtn) {
+      startBtn.addEventListener('click', () => {
+        state.updateOrderStatus(order.id, 'Kitchen Preparing');
+        modal.classList.remove('open');
+        if (showToast) showToast(`Token ${order.tokenNumber} moved to Kitchen Preparing!`, 'success');
+        if (renderApp) renderApp();
+      });
+    }
 
-  const dismissBtn = modal.querySelector('#btn-popup-dismiss');
-  if (dismissBtn) {
-    dismissBtn.addEventListener('click', () => {
-      modal.classList.remove('open');
-    });
+    const dismissBtn = modal.querySelector('#btn-popup-dismiss');
+    if (dismissBtn) {
+      dismissBtn.addEventListener('click', () => {
+        modal.classList.remove('open');
+      });
+    }
   }
 }
 
@@ -392,13 +475,34 @@ export function renderOwnerPortal(container, showToast, renderApp) {
   window._ownerShowToast = showToast;
   window._ownerRenderApp = renderApp;
 
+  const autoAcceptEnabled = isShopAutoAcceptEnabled(currentShop.id);
+
+  // Automatically accept any pending "Placed" orders for this stall
+  if (autoAcceptEnabled) {
+    const pendingPlacedOrders = state.getOrders().filter(o => o.shopId === currentShop.id && o.status === 'Placed');
+    if (pendingPlacedOrders.length > 0) {
+      pendingPlacedOrders.forEach(o => {
+        state.updateOrderStatus(o.id, 'Kitchen Preparing');
+      });
+    }
+  }
+
   // Subscribe to live incoming orders (once)
   if (!window._ownerOrderAlertSubscribed) {
     window._ownerOrderAlertSubscribed = true;
     state.subscribe((event, data) => {
       if (event === 'ORDER_CREATED') {
-        if (data && data.shopId === window._activeOwnerShopId) {
-          showIncomingOrderPopup(data, window._ownerShowToast, window._ownerRenderApp);
+        const activeShopId = window._activeOwnerShopId;
+        if (data && data.shopId === activeShopId) {
+          const autoAccept = isShopAutoAcceptEnabled(activeShopId);
+          if (autoAccept && data.status === 'Placed') {
+            state.updateOrderStatus(data.id, 'Kitchen Preparing');
+            data.status = 'Kitchen Preparing';
+            if (window._ownerShowToast) {
+              window._ownerShowToast(`⚡ Order ${data.tokenNumber} automatically accepted & moved to Kitchen Preparing!`, 'success');
+            }
+          }
+          showIncomingOrderPopup(data, window._ownerShowToast, window._ownerRenderApp, autoAccept);
           if (window._ownerRenderApp) window._ownerRenderApp();
         }
       }
@@ -761,14 +865,20 @@ export function renderOwnerPortal(container, showToast, renderApp) {
 
     <!-- Live Orders Pipeline / Kanban -->
     <div style="margin-bottom: 36px;">
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
         <div>
           <h2 style="font-size: 1.4rem; display: flex; align-items: center; gap: 8px;">
             <span>🍳</span> Real-Time Kitchen Order Kanban
           </h2>
           <p style="font-size: 0.85rem; color: var(--text-secondary);">Manage preparation stages and notify student tokens</p>
         </div>
-        <span class="badge badge-gold">Auto-Refreshes</span>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <button id="btn-toggle-auto-accept" class="btn btn-sm ${autoAcceptEnabled ? 'btn-emerald' : 'btn-secondary'}" style="font-weight: 700; border-radius: 20px; padding: 5px 14px; font-size: 0.82rem; display: flex; align-items: center; gap: 6px;" title="Toggle automatic acceptance of incoming orders into Kitchen Preparing">
+            <span>${autoAcceptEnabled ? '⚡' : '⏸️'}</span>
+            <span>Auto-Accept Orders: <strong>${autoAcceptEnabled ? 'ON' : 'OFF'}</strong></span>
+          </button>
+          <span class="badge badge-gold">Auto-Refreshes</span>
+        </div>
       </div>
 
       <div class="orders-pipeline">
@@ -783,7 +893,9 @@ export function renderOwnerPortal(container, showToast, renderApp) {
 
           <div class="pipeline-orders-list">
             ${placedOrders.length === 0 ? `
-              <div style="text-align: center; color: var(--text-muted); padding: 30px 10px; font-size: 0.88rem;">No new orders in queue.</div>
+              <div style="text-align: center; color: var(--text-muted); padding: 30px 10px; font-size: 0.88rem;">
+                ${autoAcceptEnabled ? '⚡ Auto-Accept is active. Incoming orders automatically move to Kitchen Preparing.' : 'No new orders in queue.'}
+              </div>
             ` : placedOrders.map(order => renderOwnerOrderCard(order, 'start-cooking')).join('')}
           </div>
         </div>
@@ -1050,6 +1162,18 @@ export function renderOwnerPortal(container, showToast, renderApp) {
         showToast(`Switched view to ${targetShop.name} (${targetShop.stallNumber})`, 'info');
         renderApp();
       }
+    });
+  }
+
+  // 1a. Toggle Auto-Accept Orders
+  const autoAcceptBtn = container.querySelector('#btn-toggle-auto-accept');
+  if (autoAcceptBtn) {
+    autoAcceptBtn.addEventListener('click', () => {
+      const current = isShopAutoAcceptEnabled(currentShop.id);
+      const next = !current;
+      localStorage.setItem(`kec_owner_auto_accept_${currentShop.id}`, String(next));
+      showToast(`Auto-Accept Orders is now ${next ? 'ACTIVATED (ON)' : 'PAUSED (OFF)'}`, next ? 'success' : 'info');
+      renderApp();
     });
   }
 

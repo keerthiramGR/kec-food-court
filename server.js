@@ -1,8 +1,10 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import QRCode from 'qrcode';
+import { createClient } from '@supabase/supabase-js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -10,8 +12,30 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ypytclolejmdyfmrpowk.supabase.co';
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
+
+let supabase = null;
+const isSupabaseConfigured = Boolean(
+  SUPABASE_KEY &&
+  SUPABASE_KEY.trim() !== '' &&
+  !SUPABASE_KEY.includes('your_supabase_anon_or_service_role_key_here')
+);
+
+if (isSupabaseConfigured) {
+  try {
+    supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+    console.log(`✅ Supabase connected: ${SUPABASE_URL}`);
+  } catch (err) {
+    console.warn('⚠️ Supabase initialization warning:', err.message);
+  }
+} else {
+  console.log('ℹ️ Running in resilient mode. Add SUPABASE_KEY to .env to enable direct Supabase live synchronization.');
+}
+
 app.use(cors());
 app.use(express.json());
+
 
 // In-Memory Seed Store (Syncs across all clients)
 let shopsData = [
@@ -184,16 +208,163 @@ let ordersData = [
 ];
 
 // --------------------------------------------------------------------------
+// DATABASE FORMATTERS & HELPERS
+// --------------------------------------------------------------------------
+
+function formatShopFromDB(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    name: row.name,
+    stallNumber: row.stall_number || row.stallNumber || '',
+    tagline: row.tagline || '',
+    phone: row.phone || '',
+    category: row.category || '',
+    ownerName: row.owner_name || row.ownerName || '',
+    email: row.email || '',
+    password: row.password || '',
+    rating: Number(row.rating) || 4.8,
+    reviewsCount: Number(row.reviews_count ?? row.reviewsCount) || 0,
+    prepTime: row.prep_time || row.prepTime || '10-15 mins',
+    isOpen: row.is_open !== undefined ? Boolean(row.is_open) : (row.isOpen !== undefined ? Boolean(row.isOpen) : true),
+    accentColor: row.accent_color || row.accentColor || '#FF6B35',
+    icon: row.icon || '🍛',
+    bannerImage: row.banner_image || row.bannerImage || '',
+    menu: Array.isArray(row.menu) ? row.menu : (typeof row.menu === 'string' ? JSON.parse(row.menu) : [])
+  };
+}
+
+function formatShopToDB(shop) {
+  return {
+    id: shop.id,
+    name: shop.name,
+    stall_number: shop.stallNumber || shop.stall_number,
+    tagline: shop.tagline || '',
+    phone: shop.phone || '',
+    category: shop.category || '',
+    owner_name: shop.ownerName || shop.owner_name || '',
+    email: shop.email || '',
+    password: shop.password || '',
+    rating: Number(shop.rating) || 4.8,
+    reviews_count: Number(shop.reviewsCount ?? shop.reviews_count) || 0,
+    prep_time: shop.prepTime || shop.prep_time || '10-15 mins',
+    is_open: shop.isOpen !== undefined ? Boolean(shop.isOpen) : (shop.is_open !== undefined ? Boolean(shop.is_open) : true),
+    accent_color: shop.accentColor || shop.accent_color || '#FF6B35',
+    icon: shop.icon || '🏪',
+    banner_image: shop.bannerImage || shop.banner_image || '',
+    menu: Array.isArray(shop.menu) ? shop.menu : []
+  };
+}
+
+function formatOrderFromDB(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    tokenNumber: row.token_number || row.tokenNumber,
+    studentName: row.student_name || row.studentName || 'Student',
+    studentRoll: row.student_roll || row.studentRoll || '',
+    studentPhone: row.student_phone || row.studentPhone || '',
+    shopId: row.shop_id || row.shopId,
+    shopName: row.shop_name || row.shopName || '',
+    stallNumber: row.stall_number || row.stallNumber || '',
+    items: Array.isArray(row.items) ? row.items : (typeof row.items === 'string' ? JSON.parse(row.items) : []),
+    totalAmount: Number(row.total_amount ?? row.totalAmount) || 0,
+    status: row.status || 'Placed',
+    diningType: row.dining_type || row.diningType || 'Dine-In',
+    paymentMethod: row.payment_method || row.paymentMethod || 'Google Pay (UPI)',
+    paymentStatus: row.payment_status || row.paymentStatus || 'Paid',
+    transactionId: row.transaction_id || row.transactionId || '',
+    qrCodeSvg: row.qr_code_svg || row.qrCodeSvg || '',
+    timestamp: row.timestamp || 'Just now',
+    createdTime: Number(row.created_time) || (row.created_at ? new Date(row.created_at).getTime() : Date.now())
+  };
+}
+
+function formatOrderToDB(order) {
+  return {
+    id: order.id,
+    token_number: order.tokenNumber || order.token_number,
+    student_name: order.studentName || order.student_name || 'Student',
+    student_roll: order.studentRoll || order.student_roll || '',
+    student_phone: order.studentPhone || order.student_phone || '',
+    shop_id: order.shopId || order.shop_id,
+    shop_name: order.shopName || order.shop_name || '',
+    stall_number: order.stallNumber || order.stall_number || '',
+    items: Array.isArray(order.items) ? order.items : [],
+    total_amount: Number(order.totalAmount ?? order.total_amount) || 0,
+    status: order.status || 'Placed',
+    dining_type: order.diningType || order.dining_type || 'Dine-In',
+    payment_method: order.paymentMethod || order.payment_method || 'Google Pay (UPI)',
+    payment_status: order.paymentStatus || order.payment_status || 'Paid',
+    transaction_id: order.transactionId || order.transaction_id || '',
+    qr_code_svg: order.qrCodeSvg || order.qr_code_svg || '',
+    timestamp: order.timestamp || 'Just now',
+    created_time: order.createdTime || Date.now()
+  };
+}
+
+// --------------------------------------------------------------------------
 // REST API ROUTES
 // --------------------------------------------------------------------------
 
+// Diagnostic Supabase Status Endpoint
+app.get('/api/supabase-status', async (req, res) => {
+  let pingSuccess = false;
+  let shopCount = null;
+  let orderCount = null;
+  let errorMsg = null;
+
+  if (supabase) {
+    try {
+      const { count: sCount, error: sErr } = await supabase.from('shops').select('*', { count: 'exact', head: true });
+      const { count: oCount, error: oErr } = await supabase.from('orders').select('*', { count: 'exact', head: true });
+      if (!sErr) {
+        pingSuccess = true;
+        shopCount = sCount;
+        orderCount = oCount;
+      } else {
+        errorMsg = sErr.message;
+      }
+    } catch (err) {
+      errorMsg = err.message;
+    }
+  }
+
+  res.json({
+    configured: isSupabaseConfigured,
+    connected: Boolean(supabase),
+    pingSuccess,
+    projectUrl: SUPABASE_URL,
+    shopCount,
+    orderCount,
+    error: errorMsg
+  });
+});
+
 // 1. Get all shops
-app.get('/api/shops', (req, res) => {
-  res.json({ success: true, count: shopsData.length, shops: shopsData });
+app.get('/api/shops', async (req, res) => {
+  if (supabase) {
+    try {
+      const { data, error } = await supabase.from('shops').select('*').order('id', { ascending: true });
+      if (!error && data && data.length > 0) {
+        shopsData = data.map(formatShopFromDB);
+        return res.json({ success: true, count: shopsData.length, shops: shopsData, source: 'supabase' });
+      } else if (!error && data && data.length === 0) {
+        // Auto-seed to Supabase if table is currently empty
+        console.log('🌱 Seeding initial shops into empty Supabase shops table...');
+        const rows = shopsData.map(formatShopToDB);
+        await supabase.from('shops').insert(rows);
+      }
+    } catch (e) {
+      console.warn('Supabase shops query note:', e.message);
+    }
+  }
+
+  res.json({ success: true, count: shopsData.length, shops: shopsData, source: 'memory' });
 });
 
 // 2. Add New Shop (Super Admin)
-app.post('/api/shops', (req, res) => {
+app.post('/api/shops', async (req, res) => {
   const { name, stallNumber, category, ownerName, email, password, tagline, icon, accentColor, menu } = req.body;
 
   if (!name || !stallNumber || !email) {
@@ -232,20 +403,38 @@ app.post('/api/shops', (req, res) => {
   };
 
   shopsData.push(newShop);
+
+  if (supabase) {
+    try {
+      await supabase.from('shops').insert([formatShopToDB(newShop)]);
+    } catch (e) {
+      console.warn('Supabase shop insert notice:', e.message);
+    }
+  }
+
   res.status(201).json({ success: true, shop: newShop });
 });
 
-// 3. Update Shop Status (Open/Close)
-app.patch('/api/shops/:id', (req, res) => {
+// 3. Update Shop Status (Open/Close / Details)
+app.patch('/api/shops/:id', async (req, res) => {
   const shop = shopsData.find(s => s.id === req.params.id);
   if (!shop) return res.status(404).json({ success: false, error: "Shop not found" });
 
   Object.assign(shop, req.body);
+
+  if (supabase) {
+    try {
+      await supabase.from('shops').update(formatShopToDB(shop)).eq('id', req.params.id);
+    } catch (e) {
+      console.warn('Supabase shop update notice:', e.message);
+    }
+  }
+
   res.json({ success: true, shop });
 });
 
 // 4. Add Dish to Shop Menu
-app.post('/api/shops/:id/menu', (req, res) => {
+app.post('/api/shops/:id/menu', async (req, res) => {
   const shop = shopsData.find(s => s.id === req.params.id);
   if (!shop) return res.status(404).json({ success: false, error: "Shop not found" });
 
@@ -259,11 +448,20 @@ app.post('/api/shops/:id/menu', (req, res) => {
 
   if (!shop.menu) shop.menu = [];
   shop.menu.push(newItem);
+
+  if (supabase) {
+    try {
+      await supabase.from('shops').update({ menu: shop.menu }).eq('id', req.params.id);
+    } catch (e) {
+      console.warn('Supabase menu item insert notice:', e.message);
+    }
+  }
+
   res.status(201).json({ success: true, item: newItem });
 });
 
 // 5. Update Dish Details / Stock Availability
-app.patch('/api/shops/:id/menu/:itemId', (req, res) => {
+app.patch('/api/shops/:id/menu/:itemId', async (req, res) => {
   const shop = shopsData.find(s => s.id === req.params.id);
   if (!shop || !shop.menu) return res.status(404).json({ success: false, error: "Shop or menu not found" });
 
@@ -287,11 +485,19 @@ app.patch('/api/shops/:id/menu/:itemId', (req, res) => {
     }
   }
 
+  if (supabase) {
+    try {
+      await supabase.from('shops').update({ menu: shop.menu }).eq('id', req.params.id);
+    } catch (e) {
+      console.warn('Supabase menu item update notice:', e.message);
+    }
+  }
+
   res.json({ success: true, item });
 });
 
 // 5b. Delete Dish from Menu
-app.delete('/api/shops/:id/menu/:itemId', (req, res) => {
+app.delete('/api/shops/:id/menu/:itemId', async (req, res) => {
   const shop = shopsData.find(s => s.id === req.params.id);
   if (!shop || !shop.menu) return res.status(404).json({ success: false, error: "Shop or menu not found" });
 
@@ -299,12 +505,33 @@ app.delete('/api/shops/:id/menu/:itemId', (req, res) => {
   if (itemIndex === -1) return res.status(404).json({ success: false, error: "Dish not found" });
 
   const removed = shop.menu.splice(itemIndex, 1);
+
+  if (supabase) {
+    try {
+      await supabase.from('shops').update({ menu: shop.menu }).eq('id', req.params.id);
+    } catch (e) {
+      console.warn('Supabase menu delete notice:', e.message);
+    }
+  }
+
   res.json({ success: true, removedItem: removed[0] });
 });
 
 // 6. Orders
-app.get('/api/orders', (req, res) => {
-  res.json({ success: true, count: ordersData.length, orders: ordersData });
+app.get('/api/orders', async (req, res) => {
+  if (supabase) {
+    try {
+      const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+      if (!error && data) {
+        ordersData = data.map(formatOrderFromDB);
+        return res.json({ success: true, count: ordersData.length, orders: ordersData, source: 'supabase' });
+      }
+    } catch (e) {
+      console.warn('Supabase orders query notice:', e.message);
+    }
+  }
+
+  res.json({ success: true, count: ordersData.length, orders: ordersData, source: 'memory' });
 });
 
 app.post('/api/orders', async (req, res) => {
@@ -342,7 +569,7 @@ app.post('/api/orders', async (req, res) => {
   const newOrder = {
     id: orderId,
     tokenNumber,
-    status: "Placed",
+    status: req.body.status || "Placed",
     createdTime: Date.now(),
     timestamp: "Just now",
     qrCodeSvg,
@@ -350,6 +577,7 @@ app.post('/api/orders', async (req, res) => {
   };
 
   // Automatically deduct servings count for each ordered dish
+  const touchedShops = new Set();
   if (Array.isArray(req.body.items)) {
     req.body.items.forEach(orderedItem => {
       shopsData.forEach(shop => {
@@ -361,6 +589,7 @@ app.post('/api/orders', async (req, res) => {
             if (dish.servingsCount === 0) {
               dish.isAvailable = false;
             }
+            touchedShops.add(shop);
           }
         }
       });
@@ -368,6 +597,18 @@ app.post('/api/orders', async (req, res) => {
   }
 
   ordersData.unshift(newOrder);
+
+  if (supabase) {
+    try {
+      await supabase.from('orders').insert([formatOrderToDB(newOrder)]);
+      for (const s of touchedShops) {
+        await supabase.from('shops').update({ menu: s.menu }).eq('id', s.id);
+      }
+    } catch (e) {
+      console.warn('Supabase order insert notice:', e.message);
+    }
+  }
+
   res.status(201).json({ success: true, order: newOrder });
 });
 
@@ -387,11 +628,20 @@ app.get('/api/qrcode', async (req, res) => {
   }
 });
 
-app.patch('/api/orders/:id/status', (req, res) => {
+app.patch('/api/orders/:id/status', async (req, res) => {
   const order = ordersData.find(o => o.id === req.params.id);
   if (!order) return res.status(404).json({ success: false, error: "Order not found" });
 
   order.status = req.body.status;
+
+  if (supabase) {
+    try {
+      await supabase.from('orders').update({ status: req.body.status }).eq('id', req.params.id);
+    } catch (e) {
+      console.warn('Supabase order status update notice:', e.message);
+    }
+  }
+
   res.json({ success: true, order });
 });
 
@@ -413,6 +663,7 @@ app.get('/api/stats', (req, res) => {
     }
   });
 });
+
 
 // Serve frontend static assets
 app.use(express.static(__dirname));

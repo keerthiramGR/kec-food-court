@@ -519,10 +519,13 @@ export function renderStudentPortal(container, showToast, renderApp) {
     });
   });
 
-  // Live auto-refresh when shop menu or servings are updated
+  // Live auto-refresh when shop menu, orders, or statuses are updated
   state.subscribe((event) => {
     if (event === 'SHOPS_UPDATED' || event === 'ORDER_CREATED') {
       updateStallGrid();
+    }
+    if (event === 'ORDERS_UPDATED' || event === 'ORDER_STATUS_CHANGED') {
+      if (renderApp) renderApp();
     }
   });
 

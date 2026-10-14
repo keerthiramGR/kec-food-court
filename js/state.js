@@ -13,6 +13,17 @@ class FoodCourtState {
     this.init();
     this.initSyncChannel();
     this.syncBackendShops();
+    this.syncBackendOrders();
+    this.startPeriodicSync();
+  }
+
+  startPeriodicSync() {
+    if (typeof window !== 'undefined') {
+      setInterval(() => {
+        this.syncBackendShops();
+        this.syncBackendOrders();
+      }, 8000);
+    }
   }
 
   initSyncChannel() {
@@ -21,9 +32,15 @@ class FoodCourtState {
         this.syncChannel = new BroadcastChannel('kec_foodcourt_sync');
         this.syncChannel.onmessage = (event) => {
           const { action, payload } = event.data || {};
-          if (action === 'SHOPS_UPDATED' || action === 'ORDER_CREATED' || action === 'MENU_UPDATED') {
+          if (action === 'SHOPS_UPDATED' || action === 'ORDER_CREATED' || action === 'MENU_UPDATED' || action === 'ORDER_STATUS_CHANGED' || action === 'ORDERS_UPDATED') {
             this.notify('SHOPS_UPDATED', this.getShops());
             this.notify('ORDERS_UPDATED', this.getOrders());
+            if (action === 'ORDER_CREATED' && payload) {
+              this.notify('ORDER_CREATED', payload);
+            }
+            if (action === 'ORDER_STATUS_CHANGED' && payload) {
+              this.notify('ORDER_STATUS_CHANGED', payload);
+            }
           }
         };
       } catch (e) {
@@ -98,6 +115,22 @@ class FoodCourtState {
       // offline / static fallback
     }
   }
+
+  async syncBackendOrders() {
+    try {
+      const res = await fetch('/api/orders');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.orders) {
+          localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(data.orders));
+          this.notify('ORDERS_UPDATED', data.orders);
+        }
+      }
+    } catch {
+      // offline / static fallback
+    }
+  }
+
 
   getShops() {
     try {
@@ -373,12 +406,22 @@ class FoodCourtState {
     this.notify('ORDER_CREATED', newOrder);
     this.broadcast('ORDER_CREATED', newOrder);
 
-    // Sync with Node.js backend
+    // Sync with Node.js & Supabase backend
     try {
       fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newOrder)
+      }).then(r => r.json()).then(data => {
+        if (data && data.order && data.order.qrCodeSvg) {
+          newOrder.qrCodeSvg = data.order.qrCodeSvg;
+          const currentOrders = this.getOrders();
+          const target = currentOrders.find(o => o.id === newOrder.id);
+          if (target) {
+            target.qrCodeSvg = data.order.qrCodeSvg;
+            this.saveOrders(currentOrders);
+          }
+        }
       }).catch(e => console.warn('Backend sync notice:', e));
     } catch {}
 
