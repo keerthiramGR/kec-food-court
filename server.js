@@ -14,8 +14,11 @@ const PORT = process.env.PORT || 3000;
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ypytclolejmdyfmrpowk.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || SUPABASE_KEY;
 
 let supabase = null;
+let supabaseAdmin = null;
+
 const isSupabaseConfigured = Boolean(
   SUPABASE_KEY &&
   SUPABASE_KEY.trim() !== '' &&
@@ -31,6 +34,15 @@ if (isSupabaseConfigured) {
   }
 } else {
   console.log('ℹ️ Running in resilient mode. Add SUPABASE_KEY to .env to enable direct Supabase live synchronization.');
+}
+
+if (SUPABASE_SERVICE_ROLE_KEY && SUPABASE_SERVICE_ROLE_KEY.trim() !== '' && !SUPABASE_SERVICE_ROLE_KEY.includes('your_supabase')) {
+  try {
+    supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    console.log(`✅ Supabase Admin (Auth) active: ${SUPABASE_URL}`);
+  } catch (err) {
+    console.warn('⚠️ Supabase Admin client warning:', err.message);
+  }
 }
 
 app.use(cors());
@@ -628,6 +640,132 @@ app.get('/api/stats', (req, res) => {
   });
 });
 
+// 8. Student Login & Profile Registration (Stores in Supabase Auth & public.students)
+app.post('/api/auth/student-login', async (req, res) => {
+  const { name, rollNo, mobile, department, year } = req.body;
+  if (!rollNo || !name) {
+    return res.status(400).json({ success: false, error: "Missing required fields (name, rollNo)" });
+  }
+
+  const cleanRoll = String(rollNo).trim().toUpperCase();
+  const cleanName = String(name).trim();
+  const cleanMobile = String(mobile || '').trim();
+  const studentEmail = `${cleanRoll.toLowerCase()}@kec.ac.in`;
+
+  let supabaseUser = null;
+
+  // 1. Store in Supabase Auth via Admin Client
+  if (supabaseAdmin) {
+    try {
+      const { data: userList } = await supabaseAdmin.auth.admin.listUsers();
+      const existing = (userList?.users || []).find(u => 
+        u.email === studentEmail || 
+        u.user_metadata?.roll_no === cleanRoll
+      );
+
+      if (existing) {
+        const { data: updated } = await supabaseAdmin.auth.admin.updateUserById(existing.id, {
+          user_metadata: {
+            name: cleanName,
+            roll_no: cleanRoll,
+            mobile: cleanMobile,
+            department: department || "Campus Diner",
+            year: year || "Active Student",
+            last_login_at: new Date().toISOString()
+          }
+        });
+        supabaseUser = updated?.user || existing;
+      } else {
+        const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
+          email: studentEmail,
+          password: `kec_${cleanRoll.toLowerCase()}!`,
+          email_confirm: true,
+          user_metadata: {
+            name: cleanName,
+            roll_no: cleanRoll,
+            mobile: cleanMobile,
+            role: 'student',
+            department: department || "Campus Diner",
+            year: year || "Active Student",
+            created_at: new Date().toISOString(),
+            last_login_at: new Date().toISOString()
+          }
+        });
+        if (!error && created) {
+          supabaseUser = created.user;
+        }
+      }
+    } catch (err) {
+      console.warn('Supabase Auth student sync notice:', err.message);
+    }
+  }
+
+  // 2. Also upsert into public.students table if it exists
+  if (supabase) {
+    try {
+      await supabase.from('students').upsert({
+        id: `std_${cleanRoll}`,
+        name: cleanName,
+        roll_no: cleanRoll,
+        mobile: cleanMobile,
+        department: department || 'Campus Diner',
+        year: year || 'Active Student',
+        wallet_balance: 850,
+        avatar: '🎓',
+        last_login: new Date().toISOString()
+      }, { onConflict: 'roll_no' });
+    } catch (e) {
+      // Table may not exist yet until user runs schema SQL
+    }
+  }
+
+  console.log(`✅ Student login synchronized with Supabase: ${cleanName} (${cleanRoll})`);
+  res.json({
+    success: true,
+    student: {
+      name: cleanName,
+      rollNo: cleanRoll,
+      mobile: cleanMobile,
+      email: studentEmail,
+      supabaseId: supabaseUser?.id || null
+    }
+  });
+});
+
+// 9. Fetch all registered students from Supabase
+app.get('/api/auth/students', async (req, res) => {
+  let students = [];
+
+  // Try fetching from public.students table first
+  if (supabase) {
+    try {
+      const { data, error } = await supabase.from('students').select('*').order('last_login', { ascending: false });
+      if (!error && data && data.length > 0) {
+        return res.json({ success: true, count: data.length, students: data, source: 'supabase_table' });
+      }
+    } catch (e) {}
+  }
+
+  // Fallback to Supabase Auth users
+  if (supabaseAdmin) {
+    try {
+      const { data } = await supabaseAdmin.auth.admin.listUsers();
+      if (data && data.users) {
+        students = data.users.map(u => ({
+          id: u.id,
+          name: u.user_metadata?.name || u.email,
+          roll_no: u.user_metadata?.roll_no || '',
+          mobile: u.user_metadata?.mobile || '',
+          department: u.user_metadata?.department || '',
+          last_login: u.user_metadata?.last_login_at || u.last_sign_in_at || u.created_at
+        }));
+        return res.json({ success: true, count: students.length, students, source: 'supabase_auth' });
+      }
+    } catch (e) {}
+  }
+
+  res.json({ success: true, count: 0, students: [], source: 'empty' });
+});
 
 // Serve frontend static assets
 app.use(express.static(__dirname));

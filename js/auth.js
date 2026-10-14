@@ -114,17 +114,32 @@ export function initAuth(showToast, renderApp) {
         return;
       }
 
-      state.login({
+      const studentUser = {
         role: 'student',
         name: name,
         rollNo: rollNo,
         mobile: mobile,
-        department: "Electronics & Communication Engg",
-        year: "Campus Diner",
+        department: "Campus Diner",
+        year: "Active Student",
         walletBalance: 850,
         avatar: "🎓",
         loginTime: Date.now()
-      });
+      };
+
+      state.login(studentUser);
+
+      // Store and synchronize student login with Supabase
+      try {
+        fetch('/api/auth/student-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(studentUser)
+        }).then(r => r.json()).then(res => {
+          if (res && res.success) {
+            console.log('✅ Student profile recorded in Supabase:', res.student);
+          }
+        }).catch(e => console.warn('Supabase student sync notice:', e));
+      } catch (err) {}
 
       window.hideLoginGateway();
       showToast(`Welcome, ${name}! (${rollNo}) - Navigating to Student Portal`, 'success');

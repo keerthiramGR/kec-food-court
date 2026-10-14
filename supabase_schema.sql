@@ -49,9 +49,24 @@ CREATE TABLE IF NOT EXISTS public.orders (
     created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 3. Row Level Security (RLS) setup
+-- 3. Create 'students' table (Stores Student Logins & Profiles)
+CREATE TABLE IF NOT EXISTS public.students (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    roll_no TEXT NOT NULL UNIQUE,
+    mobile TEXT NOT NULL,
+    department TEXT DEFAULT 'Campus Diner',
+    year TEXT DEFAULT 'Active Student',
+    wallet_balance NUMERIC DEFAULT 850,
+    avatar TEXT DEFAULT '🎓',
+    last_login TIMESTAMPTZ DEFAULT timezone('utc'::text, now()),
+    created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 4. Row Level Security (RLS) setup
 ALTER TABLE public.shops ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
 
 -- Allow read/write access for web application operations
 DROP POLICY IF EXISTS "Allow public all access on shops" ON public.shops;
@@ -60,7 +75,10 @@ CREATE POLICY "Allow public all access on shops" ON public.shops FOR ALL USING (
 DROP POLICY IF EXISTS "Allow public all access on orders" ON public.orders;
 CREATE POLICY "Allow public all access on orders" ON public.orders FOR ALL USING (true) WITH CHECK (true);
 
--- 4. Seed initial shops (Food & Juice with full 70 items menu)
+DROP POLICY IF EXISTS "Allow public all access on students" ON public.students;
+CREATE POLICY "Allow public all access on students" ON public.students FOR ALL USING (true) WITH CHECK (true);
+
+-- 5. Seed initial shops (Food & Juice with full 70 items menu)
 
 INSERT INTO public.shops (id, name, stall_number, tagline, phone, category, owner_name, email, password, rating, reviews_count, prep_time, is_open, accent_color, icon, banner_image, menu)
 VALUES (
@@ -135,38 +153,3 @@ VALUES (
   icon = EXCLUDED.icon,
   banner_image = EXCLUDED.banner_image,
   menu = EXCLUDED.menu;
-
--- 5. Seed initial demo orders
-INSERT INTO public.orders (id, token_number, student_name, student_roll, shop_id, shop_name, stall_number, items, total_amount, status, dining_type, timestamp, created_time)
-VALUES (
-  'KEC-1092',
-  'TK-42',
-  'Aravind Kumar',
-  '21EC108',
-  'shop-1',
-  'Food',
-  'Stall #01',
-  '[{"name":"Kongu Chicken Dum Biryani","qty":1,"price":140},{"name":"Crispy Chicken 65 Boneless","qty":1,"price":120}]'::jsonb,
-  260,
-  'Kitchen Preparing',
-  'Dine-In',
-  '10 mins ago',
-  1791529348033
-) ON CONFLICT (id) DO NOTHING;
-
-INSERT INTO public.orders (id, token_number, student_name, student_roll, shop_id, shop_name, stall_number, items, total_amount, status, dining_type, timestamp, created_time)
-VALUES (
-  'KEC-1093',
-  'TK-43',
-  'Aravind Kumar',
-  '21EC108',
-  'shop-2',
-  'Juice',
-  'Stall #02',
-  '[{"name":"Alphonso Mango Thick Shake","qty":1,"price":80}]'::jsonb,
-  80,
-  'Ready at Counter',
-  'Takeaway',
-  '4 mins ago',
-  1791529708033
-) ON CONFLICT (id) DO NOTHING;
