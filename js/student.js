@@ -7,10 +7,17 @@ export function renderStudentPortal(container, showToast, renderApp) {
   const currentUser = state.getCurrentUser();
   const isStudentLoggedIn = currentUser && currentUser.role === 'student';
 
-  // Filter student's active orders
-  const studentOrders = isStudentLoggedIn 
-    ? orders.filter(o => o.studentRoll === currentUser.rollNo || o.studentRoll === '21EC108')
-    : orders.slice(0, 3); // show demo orders for guest preview
+  // Filter student's active orders (No fake static orders for new users/guests)
+  let guestOrderIds = [];
+  try {
+    guestOrderIds = JSON.parse(localStorage.getItem('kec_guest_order_ids') || '[]');
+  } catch (e) {
+    guestOrderIds = [];
+  }
+
+  const studentOrders = (isStudentLoggedIn && currentUser && currentUser.rollNo)
+    ? orders.filter(o => o.studentRoll && o.studentRoll.toLowerCase() === currentUser.rollNo.toLowerCase())
+    : orders.filter(o => guestOrderIds.includes(o.id));
 
   let currentCategory = 'all';
   let searchQuery = '';
@@ -100,6 +107,7 @@ export function renderStudentPortal(container, showToast, renderApp) {
           </div>
         ` : studentOrders.map(order => {
           const isReady = order.status === 'Ready at Counter';
+          const isDelivered = order.status === 'Completed';
           return `
             <div class="token-card ${isReady ? 'ready-glow' : ''}">
               <div class="token-header">
@@ -108,7 +116,7 @@ export function renderStudentPortal(container, showToast, renderApp) {
                   <div class="token-num">${order.tokenNumber}</div>
                 </div>
                 <span class="token-status-pill ${order.status.toLowerCase().replace(/\s+/g, '-')}">
-                  ${isReady ? '🔔 READY FOR PICKUP' : order.status}
+                  ${isReady ? '🔔 READY FOR PICKUP' : isDelivered ? '✅ ORDER RECEIVED' : order.status}
                 </span>
               </div>
               

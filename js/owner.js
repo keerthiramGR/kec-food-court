@@ -1,4 +1,5 @@
 import { state } from './state.js';
+import { openDeliveryQrScannerModal } from './scanner.js';
 
 let ownerMenuSearchQuery = '';
 let ownerMenuCategoryFilter = 'all';
@@ -1101,9 +1102,14 @@ export function renderOwnerPortal(container, showToast, renderApp) {
       `;
     } else if (actionType === 'mark-completed') {
       actionBtnHtml = `
-        <button class="btn btn-secondary btn-sm btn-action-order" style="width: 100%;" data-order-id="${order.id}" data-target-status="Completed">
-          ✅ Delivered / Picked Up
-        </button>
+        <div style="display: flex; flex-direction: column; gap: 5px; width: 100%;">
+          <button class="btn btn-emerald btn-sm btn-verify-delivery-qr" style="width: 100%; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);" data-order-id="${order.id}">
+            <span>📷</span> <span>Scan QR to Deliver</span>
+          </button>
+          <button class="btn btn-secondary btn-xs btn-action-order" style="width: 100%; font-size: 0.74rem; opacity: 0.85; padding: 4px 8px;" data-order-id="${order.id}" data-target-status="Completed" title="Bypass QR scan and mark delivered directly">
+            <span>✅</span> Direct Delivered (No Scan)
+          </button>
+        </div>
       `;
     }
 
@@ -1261,6 +1267,20 @@ export function renderOwnerPortal(container, showToast, renderApp) {
         showToast(`Token ${updated.tokenNumber} updated to "${targetStatus}"!`, 'success');
         renderApp();
       }
+    });
+  });
+
+  // 3b. QR Code Delivery Verification Handlers
+  container.querySelectorAll('.btn-verify-delivery-qr').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const orderId = btn.dataset.orderId;
+      openDeliveryQrScannerModal({
+        currentShop,
+        targetOrderId: orderId,
+        onDelivered: () => renderApp(),
+        showToast,
+        renderApp
+      });
     });
   });
 

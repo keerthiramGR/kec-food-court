@@ -195,6 +195,15 @@ function triggerPaymentProcessing(orderParams, modal, modalBody, showToast, rend
       transactionId: txnId
     });
 
+    // Save order ID to device's guest order list so it displays in their active tokens
+    try {
+      const guestOrderIds = JSON.parse(localStorage.getItem('kec_guest_order_ids') || '[]');
+      if (!guestOrderIds.includes(newOrder.id)) {
+        guestOrderIds.unshift(newOrder.id);
+        localStorage.setItem('kec_guest_order_ids', JSON.stringify(guestOrderIds));
+      }
+    } catch (e) {}
+
     // Clear cart tray
     state.clearCart();
     renderApp();

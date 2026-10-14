@@ -169,43 +169,7 @@ let shopsData = [
   }
 ];
 
-let ordersData = [
-  {
-    id: "KEC-1092",
-    tokenNumber: "TK-42",
-    studentName: "Aravind Kumar",
-    studentRoll: "21EC108",
-    shopId: "shop-1",
-    shopName: "Food",
-    stallNumber: "Stall #01",
-    items: [
-      { name: "Kongu Chicken Dum Biryani", qty: 1, price: 140 },
-      { name: "Crispy Chicken 65 Boneless", qty: 1, price: 120 }
-    ],
-    totalAmount: 260,
-    status: "Kitchen Preparing",
-    diningType: "Dine-In",
-    timestamp: "10 mins ago",
-    createdTime: Date.now() - 600000
-  },
-  {
-    id: "KEC-1093",
-    tokenNumber: "TK-43",
-    studentName: "Aravind Kumar",
-    studentRoll: "21EC108",
-    shopId: "shop-2",
-    shopName: "Juice",
-    stallNumber: "Stall #02",
-    items: [
-      { name: "Alphonso Mango Thick Shake", qty: 1, price: 80 }
-    ],
-    totalAmount: 80,
-    status: "Ready at Counter",
-    diningType: "Takeaway",
-    timestamp: "4 mins ago",
-    createdTime: Date.now() - 240000
-  }
-];
+let ordersData = [];
 
 // --------------------------------------------------------------------------
 // DATABASE FORMATTERS & HELPERS

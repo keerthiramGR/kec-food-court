@@ -68,6 +68,17 @@ class FoodCourtState {
     const storedOrders = localStorage.getItem(STORAGE_KEYS.ORDERS);
     if (!storedOrders) {
       localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(INITIAL_ORDERS));
+    } else {
+      // Clean up legacy static demo orders (KEC-1092, KEC-1093) if they exist in localStorage
+      try {
+        const parsedOrders = JSON.parse(storedOrders);
+        if (Array.isArray(parsedOrders)) {
+          const cleaned = parsedOrders.filter(o => o.id !== 'KEC-1092' && o.id !== 'KEC-1093');
+          if (cleaned.length !== parsedOrders.length) {
+            localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(cleaned));
+          }
+        }
+      } catch (e) {}
     }
 
     // User session

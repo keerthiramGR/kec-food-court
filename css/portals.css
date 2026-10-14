@@ -1842,4 +1842,249 @@ html:not(.dark) .purchases-table td {
   }
 }
 
+/* ---------------------------------------------------------------------------
+   QR SCANNER & DELIVERY VERIFICATION STYLES
+   --------------------------------------------------------------------------- */
+
+/* QR Scanner Modal Box */
+.qr-scanner-modal-box {
+  max-width: 520px;
+  width: 95%;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.45);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.qr-scanner-viewport {
+  position: relative;
+  width: 100%;
+  max-width: 340px;
+  margin: 16px auto;
+  aspect-ratio: 1;
+  background: #000;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 2px solid rgba(16, 185, 129, 0.4);
+  box-shadow: 0 0 25px rgba(16, 185, 129, 0.2);
+}
+
+#qr-video-region {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+}
+
+#qr-video-region video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: var(--radius-md);
+}
+
+/* Scanner Animated Laser Beam */
+.scanner-laser-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #10B981, #34D399, transparent);
+  box-shadow: 0 0 16px #10B981, 0 0 8px #34D399;
+  animation: scanLaser 2s ease-in-out infinite alternate;
+  z-index: 10;
+  pointer-events: none;
+}
+
+@keyframes scanLaser {
+  0% { top: 4%; opacity: 0.8; }
+  50% { opacity: 1; }
+  100% { top: 94%; opacity: 0.8; }
+}
+
+/* Scanner Viewfinder Corners */
+.scanner-corner {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border-color: #10B981;
+  border-style: solid;
+  pointer-events: none;
+  z-index: 11;
+}
+
+.scanner-corner.top-left { top: 10px; left: 10px; border-width: 3px 0 0 3px; border-top-left-radius: 6px; }
+.scanner-corner.top-right { top: 10px; right: 10px; border-width: 3px 3px 0 0; border-top-right-radius: 6px; }
+.scanner-corner.bottom-left { bottom: 10px; left: 10px; border-width: 0 0 3px 3px; border-bottom-left-radius: 6px; }
+.scanner-corner.bottom-right { bottom: 10px; right: 10px; border-width: 0 3px 3px 0; border-bottom-right-radius: 6px; }
+
+/* ---------------------------------------------------------------------------
+   ANIMATED GREEN TICK CHECKMARK (DELIVERY SUCCESS)
+   --------------------------------------------------------------------------- */
+.success-checkmark-box {
+  width: 88px;
+  height: 88px;
+  margin: 0 auto 16px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checkmark-svg {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: block;
+  stroke-width: 3.5;
+  stroke: #10B981;
+  stroke-miterlimit: 10;
+  box-shadow: inset 0px 0px 0px #10B981, 0 0 24px rgba(16, 185, 129, 0.4);
+  animation: fillGreen 0.4s ease-in-out 0.4s forwards, scaleBounce 0.3s ease-in-out 0.8s both;
+}
+
+.checkmark-circle {
+  stroke-dasharray: 166;
+  stroke-dashoffset: 166;
+  stroke-width: 3.5;
+  stroke-miterlimit: 10;
+  stroke: #10B981;
+  fill: rgba(16, 185, 129, 0.12);
+  animation: strokeCircle 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+}
+
+.checkmark-check {
+  transform-origin: 50% 50%;
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  stroke-width: 4;
+  stroke: #10B981;
+  animation: strokeCheck 0.35s cubic-bezier(0.65, 0, 0.45, 1) 0.6s forwards;
+}
+
+@keyframes strokeCircle {
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes strokeCheck {
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes scaleBounce {
+  0%, 100% { transform: none; }
+  50% { transform: scale3d(1.15, 1.15, 1); }
+}
+
+@keyframes fillGreen {
+  100% { box-shadow: inset 0px 0px 0px 45px rgba(16, 185, 129, 0.18), 0 0 30px rgba(16, 185, 129, 0.5); }
+}
+
+/* ---------------------------------------------------------------------------
+   STUDENT BILL: ORDER RECEIVED & DELIVERED BANNER
+   --------------------------------------------------------------------------- */
+.bill-order-received-banner {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, rgba(6, 95, 70, 0.35) 100%);
+  border: 1.5px solid #10B981;
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.25);
+  animation: bannerSlideDown 0.5s ease-out;
+}
+
+@keyframes bannerSlideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.received-checkmark-icon {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  background: #10B981;
+  color: #FFFFFF;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 900;
+  box-shadow: 0 0 14px rgba(16, 185, 129, 0.6);
+}
+
+.received-heading {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #34D399;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.received-sub {
+  font-size: 0.82rem;
+  color: #E2E8F0;
+  margin-top: 2px;
+}
+
+.received-timestamp {
+  font-size: 0.74rem;
+  color: #A7F3D0;
+  font-family: var(--font-mono);
+  margin-top: 3px;
+  font-weight: 600;
+}
+
+/* Delivered Stamp on Student Bill Token */
+.bill-token-received-stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  background: rgba(16, 185, 129, 0.25);
+  border: 1.5px solid #10B981;
+  color: #34D399;
+  font-size: 0.82rem;
+  font-weight: 800;
+  padding: 4px 14px;
+  border-radius: 20px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.qr-received-stamp {
+  margin-top: 10px;
+  padding: 10px 14px;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.qr-received-stamp .stamp-title {
+  color: #34D399;
+  font-weight: 800;
+  font-size: 0.88rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.qr-received-stamp .stamp-sub {
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+}
+
+
 

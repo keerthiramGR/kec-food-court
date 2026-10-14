@@ -1,27 +1,33 @@
 import QRCode from './qrcode.bundle.js';
+import { state } from './state.js';
+
+// Live real-time sync for active open bill modal
+if (typeof window !== 'undefined' && !window._billLiveSubscriberBound) {
+  window._billLiveSubscriberBound = true;
+  state.subscribe((event, data) => {
+    if (event === 'ORDER_STATUS_CHANGED' || event === 'ORDERS_UPDATED') {
+      const modal = document.getElementById('bill-receipt-modal');
+      if (modal && modal.classList.contains('open') && window._activeBillOrderId) {
+        const currentOrders = state.getOrders();
+        const updated = currentOrders.find(o => o.id === window._activeBillOrderId);
+        if (updated) {
+          openOrderBillModal(updated);
+        }
+      }
+    }
+  });
+}
 
 export async function generateOrderQRCode(order) {
-  // Format readable and scannable verification text
-  const qrText = [
-    `KEC FOOD COURT OFFICIAL BILL`,
-    `----------------------------`,
-    `Order ID: ${order.id}`,
-    `Token: ${order.tokenNumber}`,
-    `Stall: ${order.stallNumber || ''} - ${order.shopName || ''}`,
-    `Student: ${order.studentName || 'Student'} (${order.studentRoll || 'Campus'})`,
-    `Items: ${(order.items || []).map(i => `${i.qty}x ${i.name}`).join(', ')}`,
-    `Net Amount: Rs.${order.totalAmount}`,
-    `Dining: ${order.diningType || 'Dine-In'}`,
-    `Status: ${order.status || 'Placed'}`,
-    `Payment: PAID ONLINE (Campus UPI/Wallet)`,
-    `Verified KEC Smart Dining`
-  ].join('\n');
+  // Ultra-crisp, compact payload (low-density Version 2 QR for instant webcam recognition)
+  const qrPayload = `KEC_ORDER:${order.id}:${order.tokenNumber}`;
 
   try {
-    const svg = await QRCode.toString(qrText, {
+    const svg = await QRCode.toString(qrPayload, {
       type: 'svg',
-      margin: 1,
-      width: 160,
+      margin: 2,
+      width: 200,
+      errorCorrectionLevel: 'M',
       color: {
         dark: '#0A0E17',
         light: '#FFFFFF'
@@ -39,7 +45,10 @@ export async function openOrderBillModal(order) {
   const content = document.getElementById('bill-receipt-content');
   if (!modal || !content) return;
 
+  window._activeBillOrderId = order.id;
+
   const qrSvg = await generateOrderQRCode(order);
+  const isDelivered = order.status === 'Completed';
 
   // Format order date & time
   const orderDate = order.createdTime ? new Date(order.createdTime) : new Date();
@@ -57,6 +66,29 @@ export async function openOrderBillModal(order) {
   content.innerHTML = `
     <!-- Printable Bill Receipt Document -->
     <div class="bill-receipt-card" id="printable-bill">
+      <!-- If Order Received & Delivered, show prominent Verified banner -->
+      ${isDelivered ? `
+        <div class="bill-order-received-banner">
+          <div class="received-checkmark-icon">
+            <svg class="checkmark-svg" style="width: 32px; height: 32px; box-shadow: none;" viewBox="0 0 52 52">
+              <circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none" style="stroke: #FFF; stroke-width: 4;"/>
+              <path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" style="stroke: #FFF; stroke-width: 4;"/>
+            </svg>
+          </div>
+          <div>
+            <div class="received-heading">
+              <span>✅</span> ORDER RECEIVED & DELIVERED
+            </div>
+            <div class="received-sub">
+              Verified at counter • Handed over to <strong>${escapeHtml(order.studentName || 'Student')}</strong>
+            </div>
+            <div class="received-timestamp">
+              ${order.deliveredTime ? `Delivered at ${order.deliveredTime}` : 'Successfully Received'} ${order.deliveredDate ? `• ${order.deliveredDate}` : ''}
+            </div>
+          </div>
+        </div>
+      ` : ''}
+
       <!-- Bill Header -->
       <div class="bill-header">
         <div class="bill-brand-badge">
@@ -69,14 +101,20 @@ export async function openOrderBillModal(order) {
             <div class="bill-address">Perundurai, Erode - 638 060, Tamil Nadu</div>
           </div>
         </div>
-        <div class="bill-stamp">OFFICIAL DIGITAL TOKEN RECEIPT</div>
+        <div class="bill-stamp">${isDelivered ? 'VERIFIED TAX INVOICE • CLAIMED' : 'OFFICIAL DIGITAL TOKEN RECEIPT'}</div>
       </div>
 
       <!-- Large Prominent Token Banner -->
       <div class="bill-token-banner">
         <div class="bill-token-caption">FOOD COURT PICKUP TOKEN</div>
         <div class="bill-token-number">${order.tokenNumber}</div>
-        <div class="bill-token-sub">Present this token / QR at stall counter when ready</div>
+        ${isDelivered ? `
+          <div class="bill-token-received-stamp">
+            <span>✅</span> ORDER RECEIVED & PICKED UP
+          </div>
+        ` : `
+          <div class="bill-token-sub">Present this token / QR at stall counter when ready</div>
+        `}
 
         <!-- Prominent Ordered Food Items Pill Bar -->
         <div class="bill-token-dishes" style="margin-top: 12px; padding: 10px 14px; background: rgba(0,0,0,0.3); border-radius: var(--radius-md); border: 1px solid rgba(255, 159, 28, 0.4);">
@@ -87,19 +125,27 @@ export async function openOrderBillModal(order) {
             ${(order.items || []).map(item => `
               <span style="background: rgba(255, 159, 28, 0.15); border: 1px solid rgba(255, 159, 28, 0.3); padding: 4px 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px;">
                 <span style="color: var(--primary-gold); font-family: var(--font-mono); font-size: 1.05rem;">${item.qty}x</span>
-                <span>${item.name}</span>
+                <span>${escapeHtml(item.name)}</span>
               </span>
             `).join('')}
           </div>
         </div>
       </div>
 
-      <!-- Meta Grid: Order ID, Date, Stall, Type -->
+      <!-- Meta Grid: Order ID, Date, Stall, Type, Status -->
       <div class="bill-meta-grid">
         <div class="bill-meta-item">
           <span class="bill-meta-label">ORDER NUMBER</span>
           <span class="bill-meta-val" style="font-family: var(--font-mono); font-weight: 800; color: #FFFFFF;">
             #${order.id}
+          </span>
+        </div>
+        <div class="bill-meta-item">
+          <span class="bill-meta-label">STATUS</span>
+          <span class="bill-meta-val">
+            <span class="badge ${isDelivered ? 'badge-emerald' : 'badge-gold'}" style="font-size: 0.74rem; font-weight: 800;">
+              ${isDelivered ? '✅ ORDER RECEIVED' : order.status}
+            </span>
           </span>
         </div>
         <div class="bill-meta-item">
@@ -109,8 +155,8 @@ export async function openOrderBillModal(order) {
         <div class="bill-meta-item">
           <span class="bill-meta-label">FOOD STALL</span>
           <span class="bill-meta-val">
-            <strong style="color: var(--primary-gold);">${order.shopName || 'Food'}</strong>
-            <span style="opacity: 0.8; font-size: 0.8rem;">(${order.stallNumber || 'Stall #01'})</span>
+            <strong style="color: var(--primary-gold);">${escapeHtml(order.shopName || 'Food')}</strong>
+            <span style="opacity: 0.8; font-size: 0.8rem;">(${escapeHtml(order.stallNumber || 'Stall #01')})</span>
           </span>
         </div>
         <div class="bill-meta-item">
@@ -127,9 +173,9 @@ export async function openOrderBillModal(order) {
       <div class="bill-student-box">
         <div class="bill-box-title">STUDENT CREDENTIALS</div>
         <div class="bill-student-row">
-          <div>Name: <strong style="color: #FFFFFF;">${order.studentName || 'Aravind Kumar'}</strong></div>
-          <div>Roll No: <strong style="color: var(--primary-gold);">${order.studentRoll || '21EC108'}</strong></div>
-          <div>Mobile: <strong style="color: #FFFFFF;">${order.studentPhone || '98427 06474'}</strong></div>
+          <div>Name: <strong style="color: #FFFFFF;">${order.studentName || 'Student'}</strong></div>
+          <div>Roll No: <strong style="color: var(--primary-gold);">${order.studentRoll || 'N/A'}</strong></div>
+          <div>Mobile: <strong style="color: #FFFFFF;">${order.studentPhone || 'N/A'}</strong></div>
         </div>
       </div>
 
@@ -209,12 +255,22 @@ export async function openOrderBillModal(order) {
           </div>
         </div>
         <div class="bill-qr-instructions">
-          <div style="font-weight: 800; color: #FFFFFF; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 6px;">
-            <span>📷</span> UNIQUE ORDER PICKUP QR
-          </div>
-          <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 6px 0 0; line-height: 1.4;">
-            Scan at <strong>${order.stallNumber || 'Stall #01'}</strong> counter to verify and claim your order.
-          </p>
+          ${isDelivered ? `
+            <div style="font-weight: 800; color: #34D399; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 6px;">
+              <span>✅</span> ORDER RECEIVED & CLAIMED
+            </div>
+            <div class="qr-received-stamp">
+              <span class="stamp-title"><span>🎉</span> Food Handover Complete</span>
+              <span class="stamp-sub">Verified by ${escapeHtml(order.shopName || 'Food Stall')} Manager</span>
+            </div>
+          ` : `
+            <div style="font-weight: 800; color: #FFFFFF; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 6px;">
+              <span>📷</span> UNIQUE ORDER PICKUP QR
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 6px 0 0; line-height: 1.4;">
+              Scan at <strong>${escapeHtml(order.stallNumber || 'Stall #01')}</strong> counter to verify and claim your order.
+            </p>
+          `}
           <div style="margin-top: 6px; font-family: var(--font-mono); font-size: 0.72rem; color: var(--primary-gold);">
             Token: ${order.tokenNumber} • Order: #${order.id}
           </div>
@@ -253,11 +309,30 @@ export async function openOrderBillModal(order) {
   const closeBtn = document.getElementById('btn-close-bill');
   if (closeBtn) {
     closeBtn.addEventListener('click', () => {
+      window._activeBillOrderId = null;
       modal.classList.remove('open');
     });
   }
 
+  // Also bind modal background click or modal header close btn
+  const modalCloseBtn = modal.querySelector('.modal-close-btn');
+  if (modalCloseBtn) {
+    modalCloseBtn.onclick = () => {
+      window._activeBillOrderId = null;
+      modal.classList.remove('open');
+    };
+  }
+
   modal.classList.add('open');
+}
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 // Make globally available for convenience

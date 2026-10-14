@@ -225,9 +225,9 @@ function initCartModal() {
 
           // Prepare order parameters for payment verification
           const orderParams = {
-            studentName: currentUser ? currentUser.name : "Aravind Kumar",
-            studentRoll: currentUser ? (currentUser.rollNo || "21EC108") : "21EC108",
-            studentPhone: currentUser ? (currentUser.mobile || currentUser.phone || "98427 06474") : "98427 06474",
+            studentName: currentUser ? currentUser.name : "Campus Guest",
+            studentRoll: currentUser ? (currentUser.rollNo || "") : `GUEST-${Math.floor(1000 + Math.random() * 9000)}`,
+            studentPhone: currentUser ? (currentUser.mobile || currentUser.phone || "") : "",
             shopId: firstItem.shopId,
             shopName: firstItem.shopName,
             stallNumber: firstItem.stallNumber,
