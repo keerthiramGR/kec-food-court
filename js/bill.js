@@ -1,5 +1,6 @@
 import QRCode from './qrcode.bundle.js';
 import { state } from './state.js';
+import { calculateOrderEstimatedPrep, playReadyChime } from './countdown.js';
 
 // Live real-time sync for active open bill modal
 if (typeof window !== 'undefined' && !window._billLiveSubscriberBound) {
@@ -49,6 +50,9 @@ export async function openOrderBillModal(order) {
 
   const qrSvg = await generateOrderQRCode(order);
   const isDelivered = order.status === 'Completed';
+
+  // Smart Kitchen Countdown & Estimation Factors
+  const calc = calculateOrderEstimatedPrep(order);
 
   // Format order date & time
   const orderDate = order.createdTime ? new Date(order.createdTime) : new Date();
@@ -132,6 +136,79 @@ export async function openOrderBillModal(order) {
         </div>
       </div>
 
+      <!-- SMART FOOD PREPARATION LIVE COUNTDOWN & ESTIMATION SECTION -->
+      <div class="bill-countdown-card ${calc.isReady ? 'ready-state' : ''}" id="bill-live-countdown-card">
+        <div class="countdown-header-row">
+          <div class="countdown-tagline">
+            <span class="live-pulse-dot" style="${calc.isDelivered ? 'background:#3B82F6; box-shadow:0 0 8px #3B82F6;' : ''}"></span>
+            <span>${calc.isDelivered ? 'FOOD HANDOVER COMPLETED' : calc.isReady ? 'FOOD READY AT COUNTER' : 'LIVE KITCHEN PREPARATION COUNTDOWN'}</span>
+          </div>
+          <div class="countdown-status-badge ${calc.isDelivered ? 'delivered' : calc.isReady ? 'ready' : 'preparing'}" id="bill-countdown-status-badge">
+            ${calc.isDelivered ? '✅ DELIVERED' : calc.isReady ? '🔔 READY FOR PICKUP' : '🔥 KITCHEN PREPARING'}
+          </div>
+        </div>
+
+        <div class="countdown-timer-display">
+          <div class="countdown-digits ${calc.isReady ? 'ready-digits' : ''}" id="bill-countdown-digits">
+            ${calc.isDelivered ? 'PICKED UP' : calc.isReady ? 'READY NOW!' : calc.formattedMMSS}
+          </div>
+          <div class="countdown-digits-sub">
+            ${calc.isDelivered ? `Handed over to <strong>${escapeHtml(order.studentName || 'Student')}</strong>` :
+              calc.isReady ? `Token <strong>${order.tokenNumber}</strong> is ready at ${escapeHtml(order.stallNumber || 'Stall')}` :
+              `ESTIMATED PICKUP AT: <strong id="bill-target-time-label">${calc.formattedTargetTime}</strong>`}
+          </div>
+        </div>
+
+        <div class="countdown-progress-bar-wrap">
+          <div class="countdown-progress-bar" id="bill-countdown-progress" style="width: ${calc.progressPercent}%;"></div>
+        </div>
+
+        <!-- 3 Smart Condition Breakdown Pills: Food Type, Stall Queue, Same Food Batching -->
+        <div class="countdown-breakdown-grid">
+          <!-- Condition 1: Food Type Base Cooking Time -->
+          <div class="breakdown-pill" title="${calc.factors.foodType.summary}">
+            <span class="pill-icon">🍲</span>
+            <div>
+              <div class="pill-title">FOOD TYPE TIME</div>
+              <div class="pill-val">${calc.factors.foodType.totalFoodMinutes}m Base</div>
+              <div style="font-size: 0.68rem; color: var(--text-secondary); margin-top: 2px;">${escapeHtml(calc.factors.foodType.primaryDish)}</div>
+            </div>
+          </div>
+
+          <!-- Condition 2: Number of People / Orders Ahead at Stall -->
+          <div class="breakdown-pill" title="${calc.factors.peopleAhead.summary}">
+            <span class="pill-icon">👥</span>
+            <div>
+              <div class="pill-title">STALL QUEUE</div>
+              <div class="pill-val">${calc.factors.peopleAhead.count === 0 ? '0 Ahead (First)' : `${calc.factors.peopleAhead.count} orders ahead`}</div>
+              <div style="font-size: 0.68rem; color: var(--text-secondary); margin-top: 2px;">${calc.factors.peopleAhead.count === 0 ? 'Instant Tawa Slot' : `+${calc.factors.peopleAhead.queueMinutes}m queue`}</div>
+            </div>
+          </div>
+
+          <!-- Condition 3: Same Food Condition / Batch Synergy -->
+          <div class="breakdown-pill ${calc.factors.sameFoodCondition.hasSameFoodMatch ? 'synergy-active' : ''}" title="${calc.factors.sameFoodCondition.summary}">
+            <span class="pill-icon">${calc.factors.sameFoodCondition.hasSameFoodMatch ? '⚡' : '🍳'}</span>
+            <div>
+              <div class="pill-title">SAME FOOD BATCHING</div>
+              <div class="pill-val">${calc.factors.sameFoodCondition.hasSameFoodMatch ? `🥘 Batch Synergy` : 'Dedicated Slot'}</div>
+              <div style="font-size: 0.68rem; color: ${calc.factors.sameFoodCondition.hasSameFoodMatch ? '#FFA726' : 'var(--text-secondary)'}; margin-top: 2px;">
+                ${calc.factors.sameFoodCondition.hasSameFoodMatch ? `-${calc.factors.sameFoodCondition.savingsMinutes}m fast-track` : 'Fresh sequence'}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dynamic Live Instructions Banner -->
+        <div class="countdown-instruction-banner ${calc.isReady ? 'ready-alert' : ''}" id="bill-countdown-instruction">
+          ${calc.isDelivered ?
+            `🎉 Order handover verified. Thank you for dining with KEC Food Court!` :
+            calc.isReady ?
+            `🔔 <strong>YOUR FOOD IS READY!</strong> Please proceed to <strong>${escapeHtml(order.stallNumber || 'Stall')}</strong> (${escapeHtml(order.shopName || 'Food Stall')}) counter with Token <strong>${order.tokenNumber}</strong>.` :
+            `👨‍🍳 Chef at <strong>${escapeHtml(order.stallNumber || 'Stall')}</strong> is actively preparing your order. Present Token <strong>${order.tokenNumber}</strong> or the QR code below when countdown reaches zero.`
+          }
+        </div>
+      </div>
+
       <!-- Meta Grid: Order ID, Date, Stall, Type, Status -->
       <div class="bill-meta-grid">
         <div class="bill-meta-item">
@@ -143,8 +220,8 @@ export async function openOrderBillModal(order) {
         <div class="bill-meta-item">
           <span class="bill-meta-label">STATUS</span>
           <span class="bill-meta-val">
-            <span class="badge ${isDelivered ? 'badge-emerald' : 'badge-gold'}" style="font-size: 0.74rem; font-weight: 800;">
-              ${isDelivered ? '✅ ORDER RECEIVED' : order.status}
+            <span class="badge ${isDelivered ? 'badge-emerald' : calc.isReady ? 'badge-emerald' : 'badge-gold'}" id="bill-meta-status-pill" style="font-size: 0.74rem; font-weight: 800;">
+              ${isDelivered ? '✅ ORDER RECEIVED' : calc.isReady ? '🔔 READY AT COUNTER' : order.status}
             </span>
           </span>
         </div>
@@ -305,25 +382,112 @@ export async function openOrderBillModal(order) {
     });
   }
 
+  // Helper for cleanup
+  const handleModalClose = () => {
+    if (window._billCountdownInterval) {
+      clearInterval(window._billCountdownInterval);
+      window._billCountdownInterval = null;
+    }
+    window._activeBillOrderId = null;
+    modal.classList.remove('open');
+  };
+
   // Bind Close button
   const closeBtn = document.getElementById('btn-close-bill');
   if (closeBtn) {
-    closeBtn.addEventListener('click', () => {
-      window._activeBillOrderId = null;
-      modal.classList.remove('open');
-    });
+    closeBtn.addEventListener('click', handleModalClose);
   }
 
-  // Also bind modal background click or modal header close btn
+  // Also bind modal header close btn
   const modalCloseBtn = modal.querySelector('.modal-close-btn');
   if (modalCloseBtn) {
-    modalCloseBtn.onclick = () => {
-      window._activeBillOrderId = null;
-      modal.classList.remove('open');
-    };
+    modalCloseBtn.onclick = handleModalClose;
   }
 
   modal.classList.add('open');
+
+  // --------------------------------------------------------------------------
+  // LIVE COUNTDOWN INTERVAL (Updates digits, progress bar, & chime every 1 sec)
+  // --------------------------------------------------------------------------
+  if (window._billCountdownInterval) {
+    clearInterval(window._billCountdownInterval);
+    window._billCountdownInterval = null;
+  }
+
+  let chimePlayed = Boolean(calc.isReady || calc.isDelivered);
+
+  window._billCountdownInterval = setInterval(() => {
+    const activeModal = document.getElementById('bill-receipt-modal');
+    if (!activeModal || !activeModal.classList.contains('open') || window._activeBillOrderId !== order.id) {
+      clearInterval(window._billCountdownInterval);
+      window._billCountdownInterval = null;
+      return;
+    }
+
+    const currentOrders = state.getOrders();
+    const liveOrder = currentOrders.find(o => o.id === order.id) || order;
+    const currentCalc = calculateOrderEstimatedPrep(liveOrder);
+
+    const cardEl = document.getElementById('bill-live-countdown-card');
+    const digitsEl = document.getElementById('bill-countdown-digits');
+    const statusBadgeEl = document.getElementById('bill-countdown-status-badge');
+    const progressEl = document.getElementById('bill-countdown-progress');
+    const instructionEl = document.getElementById('bill-countdown-instruction');
+    const metaStatusPill = document.getElementById('bill-meta-status-pill');
+
+    if (!digitsEl || !progressEl) return;
+
+    if (currentCalc.isDelivered) {
+      if (cardEl) cardEl.classList.remove('ready-state');
+      digitsEl.className = 'countdown-digits';
+      digitsEl.textContent = 'PICKED UP';
+      if (statusBadgeEl) {
+        statusBadgeEl.className = 'countdown-status-badge delivered';
+        statusBadgeEl.textContent = '✅ DELIVERED';
+      }
+      if (metaStatusPill) {
+        metaStatusPill.className = 'badge badge-emerald';
+        metaStatusPill.textContent = '✅ ORDER RECEIVED';
+      }
+      progressEl.style.width = '100%';
+      if (instructionEl) {
+        instructionEl.className = 'countdown-instruction-banner';
+        instructionEl.innerHTML = `🎉 Order verification complete. Handed over to <strong>${escapeHtml(liveOrder.studentName || 'Student')}</strong>.`;
+      }
+      clearInterval(window._billCountdownInterval);
+      window._billCountdownInterval = null;
+      return;
+    }
+
+    if (currentCalc.isReady) {
+      if (cardEl) cardEl.classList.add('ready-state');
+      digitsEl.className = 'countdown-digits ready-digits';
+      digitsEl.textContent = 'READY NOW!';
+      if (statusBadgeEl) {
+        statusBadgeEl.className = 'countdown-status-badge ready';
+        statusBadgeEl.textContent = '🔔 READY FOR PICKUP';
+      }
+      if (metaStatusPill) {
+        metaStatusPill.className = 'badge badge-emerald';
+        metaStatusPill.textContent = '🔔 READY AT COUNTER';
+      }
+      progressEl.style.width = '100%';
+      if (instructionEl) {
+        instructionEl.className = 'countdown-instruction-banner ready-alert';
+        instructionEl.innerHTML = `🔔 <strong>YOUR FOOD IS READY!</strong> Please proceed to <strong>${escapeHtml(liveOrder.stallNumber || 'Stall')}</strong> (${escapeHtml(liveOrder.shopName || 'Food Stall')}) counter with Token <strong>${liveOrder.tokenNumber}</strong>.`;
+      }
+      if (!chimePlayed) {
+        chimePlayed = true;
+        playReadyChime();
+        try { navigator.vibrate?.([200, 100, 200]); } catch (e) {}
+      }
+    } else {
+      if (cardEl) cardEl.classList.remove('ready-state');
+      digitsEl.className = 'countdown-digits';
+      digitsEl.textContent = currentCalc.formattedMMSS;
+      progressEl.style.width = `${currentCalc.progressPercent}%`;
+    }
+  }, 1000);
 }
 
 function escapeHtml(str) {

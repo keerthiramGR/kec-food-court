@@ -1,4 +1,5 @@
 import { INITIAL_SHOPS, INITIAL_ORDERS, DEFAULT_USERS } from './data.js';
+import { calculateOrderEstimatedPrep } from './countdown.js';
 
 const STORAGE_KEYS = {
   SHOPS: 'kec_foodcourt_shops_v5',
@@ -387,8 +388,11 @@ class FoodCourtState {
       ...orderData
     };
 
-    // Automatically deduct ordered servings from shop menu inventory
     const shops = this.getShops();
+    const estimation = calculateOrderEstimatedPrep(newOrder, orders, shops);
+    newOrder.estimatedPrepMinutes = estimation.totalEstimatedMinutes;
+    newOrder.targetReadyTime = estimation.targetReadyTime;
+    newOrder.prepFactors = estimation.factors;
     let shopsModified = false;
     if (Array.isArray(orderData.items)) {
       orderData.items.forEach(orderedItem => {

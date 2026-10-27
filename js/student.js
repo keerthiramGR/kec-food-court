@@ -1,5 +1,6 @@
 import { state } from './state.js';
 import { openOrderBillModal } from './bill.js';
+import { calculateOrderEstimatedPrep, playReadyChime } from './countdown.js';
 
 export function renderStudentPortal(container, showToast, renderApp) {
   const shops = state.getShops();
@@ -106,18 +107,47 @@ export function renderStudentPortal(container, showToast, renderApp) {
             No active orders right now. Pick your favorite dish below to generate your token!
           </div>
         ` : studentOrders.map(order => {
-          const isReady = order.status === 'Ready at Counter';
+          const calc = calculateOrderEstimatedPrep(order);
+          const isReady = order.status === 'Ready at Counter' || calc.isReady;
           const isDelivered = order.status === 'Completed';
           return `
-            <div class="token-card ${isReady ? 'ready-glow' : ''}">
+            <div class="token-card ${isReady && !isDelivered ? 'ready-glow' : ''}" id="token-card-box-${order.id}">
               <div class="token-header">
                 <div>
                   <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">TOKEN NUMBER</span>
                   <div class="token-num">${order.tokenNumber}</div>
                 </div>
-                <span class="token-status-pill ${order.status.toLowerCase().replace(/\s+/g, '-')}">
-                  ${isReady ? '🔔 READY FOR PICKUP' : isDelivered ? '✅ ORDER RECEIVED' : order.status}
+                <span class="token-status-pill ${order.status.toLowerCase().replace(/\s+/g, '-')}" id="token-status-pill-${order.id}">
+                  ${isDelivered ? '✅ ORDER RECEIVED' : isReady ? '🔔 READY FOR PICKUP' : order.status}
                 </span>
+              </div>
+
+              <!-- Live Preparation Countdown Widget for this Token -->
+              <div class="token-countdown-block" id="token-countdown-wrap-${order.id}">
+                ${isDelivered ? `
+                  <div class="token-countdown-ready delivered">
+                    <span>✅</span> Food Received & Handed Over
+                  </div>
+                ` : isReady ? `
+                  <div class="token-countdown-ready pulse-ready">
+                    <span>🔔</span> READY AT COUNTER • COLLECT NOW!
+                  </div>
+                ` : `
+                  <div class="token-countdown-active">
+                    <div class="countdown-row">
+                      <span class="countdown-clock-label">
+                        <span class="live-dot-mini"></span> Ready in: <strong class="token-clock-time" id="token-clock-${order.id}">${calc.formattedMMSS}</strong>
+                      </span>
+                      <span class="countdown-queue-info">
+                        ${calc.factors.peopleAhead.count === 0 ? '🍳 Immediate Prep' : `👥 ${calc.factors.peopleAhead.count} in queue`}
+                        ${calc.factors.sameFoodCondition.hasSameFoodMatch ? ' • 🥘 Batch' : ''}
+                      </span>
+                    </div>
+                    <div class="token-mini-progress-track">
+                      <div class="token-mini-progress-bar" id="token-bar-${order.id}" style="width: ${calc.progressPercent}%;"></div>
+                    </div>
+                  </div>
+                `}
               </div>
               
               <div style="font-size: 0.95rem; font-weight: 700; color: #FFFFFF;">
@@ -139,7 +169,7 @@ export function renderStudentPortal(container, showToast, renderApp) {
               </div>
 
               <button class="btn btn-outline-gold btn-sm btn-view-bill" data-order-id="${order.id}" style="width: 100%; margin-top: 10px; font-size: 0.82rem; padding: 7px 12px;">
-                <span>🧾</span> View Bill & QR Code
+                <span>🧾</span> View Bill & Countdown QR
               </button>
             </div>
           `;
@@ -536,6 +566,47 @@ export function renderStudentPortal(container, showToast, renderApp) {
       if (renderApp) renderApp();
     }
   });
+
+  // Live 1-second ticker for Student Tokens Board
+  if (window._studentTokensInterval) {
+    clearInterval(window._studentTokensInterval);
+    window._studentTokensInterval = null;
+  }
+  if (studentOrders.length > 0) {
+    window._studentTokensInterval = setInterval(() => {
+      const orders = state.getOrders();
+      studentOrders.forEach(o => {
+        const liveOrder = orders.find(item => item.id === o.id) || o;
+        const clockEl = document.getElementById(`token-clock-${o.id}`);
+        const barEl = document.getElementById(`token-bar-${o.id}`);
+        const wrapEl = document.getElementById(`token-countdown-wrap-${o.id}`);
+        const cardEl = document.getElementById(`token-card-box-${o.id}`);
+        const statusPill = document.getElementById(`token-status-pill-${o.id}`);
+
+        if (wrapEl) {
+          const c = calculateOrderEstimatedPrep(liveOrder);
+          if (liveOrder.status === 'Completed') {
+            wrapEl.innerHTML = `<div class="token-countdown-ready delivered"><span>✅</span> Food Received & Handed Over</div>`;
+            if (statusPill) {
+              statusPill.className = 'token-status-pill completed';
+              statusPill.textContent = '✅ ORDER RECEIVED';
+            }
+            if (cardEl) cardEl.classList.remove('ready-glow');
+          } else if (liveOrder.status === 'Ready at Counter' || c.isReady) {
+            wrapEl.innerHTML = `<div class="token-countdown-ready pulse-ready"><span>🔔</span> READY AT COUNTER • COLLECT NOW!</div>`;
+            if (statusPill) {
+              statusPill.className = 'token-status-pill ready-at-counter';
+              statusPill.textContent = '🔔 READY FOR PICKUP';
+            }
+            if (cardEl) cardEl.classList.add('ready-glow');
+          } else {
+            if (clockEl) clockEl.textContent = c.formattedMMSS;
+            if (barEl) barEl.style.width = `${c.progressPercent}%`;
+          }
+        }
+      });
+    }, 1000);
+  }
 
   updateStallGrid();
   updateCartBadge();

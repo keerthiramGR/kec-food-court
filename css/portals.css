@@ -2086,5 +2086,416 @@ html:not(.dark) .purchases-table td {
   font-size: 0.76rem;
 }
 
+/* ==========================================================================
+   SMART FOOD PREPARATION COUNTDOWN & ESTIMATION STYLES
+   ========================================================================== */
+
+/* Main Bill Modal Countdown Card */
+.bill-countdown-card {
+  margin: 16px 0 20px;
+  padding: 16px 18px;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 41, 59, 0.75) 100%);
+  border: 1.5px solid rgba(255, 159, 28, 0.45);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), 0 0 16px rgba(255, 159, 28, 0.12);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+html:not(.dark) .bill-countdown-card {
+  background: linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%);
+  border-color: rgba(234, 88, 12, 0.4);
+  box-shadow: 0 6px 20px rgba(234, 88, 12, 0.12);
+}
+
+.bill-countdown-card.ready-state {
+  border-color: #10B981;
+  background: linear-gradient(135deg, rgba(6, 78, 59, 0.85) 0%, rgba(4, 47, 46, 0.85) 100%);
+  box-shadow: 0 0 28px rgba(16, 185, 129, 0.3);
+  animation: pulseReadyGlow 2.2s infinite ease-in-out;
+}
+
+html:not(.dark) .bill-countdown-card.ready-state {
+  background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%);
+  border-color: #059669;
+}
+
+@keyframes pulseReadyGlow {
+  0%, 100% { box-shadow: 0 0 18px rgba(16, 185, 129, 0.25); }
+  50% { box-shadow: 0 0 32px rgba(16, 185, 129, 0.5); }
+}
+
+.countdown-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.countdown-tagline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--primary-gold);
+}
+
+.live-pulse-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #10B981;
+  box-shadow: 0 0 10px #10B981;
+  animation: liveBlink 1.2s infinite alternate ease-in-out;
+  display: inline-block;
+}
+
+@keyframes liveBlink {
+  0% { transform: scale(0.85); opacity: 0.6; }
+  100% { transform: scale(1.25); opacity: 1; }
+}
+
+.countdown-status-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.countdown-status-badge.preparing {
+  background: rgba(255, 159, 28, 0.18);
+  color: #FFA726;
+  border: 1px solid rgba(255, 159, 28, 0.4);
+}
+.countdown-status-badge.ready {
+  background: rgba(16, 185, 129, 0.22);
+  color: #34D399;
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  animation: pulseReady 1.6s infinite ease-in-out;
+}
+.countdown-status-badge.delivered {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60A5FA;
+  border: 1px solid rgba(59, 130, 246, 0.4);
+}
+
+/* Digital Monospace Timer Display */
+.countdown-timer-display {
+  text-align: center;
+  margin: 6px 0 14px;
+}
+
+.countdown-digits {
+  font-family: var(--font-mono);
+  font-size: 3.2rem;
+  font-weight: 900;
+  letter-spacing: 4px;
+  line-height: 1;
+  color: #FFFFFF;
+  text-shadow: 0 0 20px rgba(255, 159, 28, 0.45), 0 2px 4px rgba(0,0,0,0.5);
+  display: inline-block;
+}
+
+html:not(.dark) .countdown-digits {
+  color: #9A3412;
+  text-shadow: none;
+}
+
+.countdown-digits.ready-digits {
+  color: #34D399;
+  font-size: 2.5rem;
+  letter-spacing: 1px;
+  text-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+}
+
+html:not(.dark) .countdown-digits.ready-digits {
+  color: #047857;
+}
+
+.countdown-digits-sub {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  margin-top: 6px;
+}
+
+.countdown-digits-sub strong {
+  color: var(--primary-gold);
+}
+
+/* Progress Bar */
+.countdown-progress-bar-wrap {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+html:not(.dark) .countdown-progress-bar-wrap {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.countdown-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #FF9F1C 0%, #FF5722 50%, #10B981 100%);
+  border-radius: 6px;
+  transition: width 0.9s ease;
+  box-shadow: 0 0 10px rgba(255, 159, 28, 0.5);
+}
+
+.bill-countdown-card.ready-state .countdown-progress-bar {
+  background: #10B981;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.6);
+}
+
+/* 3 Smart Factors Breakdown Pills */
+.countdown-breakdown-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 520px) {
+  .countdown-breakdown-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.breakdown-pill {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  text-align: left;
+}
+
+html:not(.dark) .breakdown-pill {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.breakdown-pill.synergy-active {
+  background: rgba(255, 159, 28, 0.12);
+  border-color: rgba(255, 159, 28, 0.35);
+}
+
+.breakdown-pill .pill-icon {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.breakdown-pill .pill-title {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.breakdown-pill .pill-val {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  line-height: 1.25;
+}
+
+html:not(.dark) .breakdown-pill .pill-val {
+  color: #1E293B;
+}
+
+.breakdown-pill.synergy-active .pill-val {
+  color: #FFA726;
+}
+
+/* Real-time Instructions Banner */
+.countdown-instruction-banner {
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.25);
+  font-size: 0.8rem;
+  text-align: center;
+  color: var(--text-secondary);
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  line-height: 1.4;
+}
+
+html:not(.dark) .countdown-instruction-banner {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: #475569;
+}
+
+.countdown-instruction-banner.ready-alert {
+  background: rgba(16, 185, 129, 0.2);
+  border: 1.5px solid #10B981;
+  color: #FFFFFF;
+  font-weight: 700;
+}
+
+html:not(.dark) .countdown-instruction-banner.ready-alert {
+  background: #D1FAE5;
+  color: #065F46;
+}
+
+/* ==========================================================================
+   STUDENT PORTAL LIVE TOKEN CARDS COUNTDOWN
+   ========================================================================== */
+
+.token-countdown-block {
+  margin: 8px 0 4px;
+}
+
+.token-countdown-active {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 159, 28, 0.25);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+html:not(.dark) .token-countdown-active {
+  background: rgba(255, 247, 237, 0.8);
+  border-color: rgba(234, 88, 12, 0.2);
+}
+
+.token-countdown-active .countdown-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 0.82rem;
+}
+
+.countdown-clock-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+}
+
+.live-dot-mini {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10B981;
+  display: inline-block;
+  animation: liveBlink 1s infinite alternate;
+}
+
+.token-clock-time {
+  font-family: var(--font-mono);
+  font-size: 0.96rem;
+  font-weight: 800;
+  color: var(--primary-gold);
+  letter-spacing: 0.8px;
+}
+
+.countdown-queue-info {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.token-mini-progress-track {
+  width: 100%;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.token-mini-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #FF9F1C, #10B981);
+  border-radius: 4px;
+  transition: width 0.9s ease;
+}
+
+.token-countdown-ready {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid #10B981;
+  color: #34D399;
+  font-weight: 800;
+  font-size: 0.82rem;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+.token-countdown-ready.pulse-ready {
+  animation: pulseReady 1.8s infinite ease-in-out;
+}
+
+.token-countdown-ready.delivered {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: #93C5FD;
+}
+
+/* Owner Kitchen Countdown Badge */
+.owner-order-countdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 159, 28, 0.15);
+  border: 1px solid rgba(255, 159, 28, 0.3);
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #FFA726;
+  margin-top: 4px;
+}
+
+.owner-order-countdown.overdue {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #EF4444;
+}
+
+/* Print Clean View */
+@media print {
+  .bill-countdown-card {
+    background: none !important;
+    border: 1px solid #CCC !important;
+    box-shadow: none !important;
+    color: #000 !important;
+    page-break-inside: avoid;
+  }
+  .countdown-digits {
+    color: #000 !important;
+    text-shadow: none !important;
+    font-size: 1.8rem !important;
+  }
+  .countdown-progress-bar-wrap,
+  .live-pulse-dot {
+    display: none !important;
+  }
+  .breakdown-pill {
+    border: 1px solid #DDD !important;
+    background: none !important;
+    color: #000 !important;
+  }
+  .breakdown-pill .pill-val {
+    color: #000 !important;
+  }
+}
+
 
 

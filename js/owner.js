@@ -1,5 +1,6 @@
 import { state } from './state.js';
 import { openDeliveryQrScannerModal } from './scanner.js';
+import { calculateOrderEstimatedPrep } from './countdown.js';
 
 let ownerMenuSearchQuery = '';
 let ownerMenuCategoryFilter = 'all';
@@ -1113,6 +1114,8 @@ export function renderOwnerPortal(container, showToast, renderApp) {
       `;
     }
 
+    const calc = calculateOrderEstimatedPrep(order);
+
     return `
       <div class="owner-order-card">
         <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -1124,6 +1127,15 @@ export function renderOwnerPortal(container, showToast, renderApp) {
 
         <div style="font-size: 0.85rem; color: var(--text-secondary);">
           Student: <strong style="color: #FFF;">${order.studentName || 'Student'}</strong> (${order.studentRoll || 'Campus'})
+        </div>
+
+        <div style="margin: 3px 0 6px;">
+          <span class="owner-order-countdown ${calc.remainingSeconds <= 0 && order.status !== 'Completed' ? 'overdue' : ''}">
+            ⏱️ ${order.status === 'Completed' ? '✅ Delivered' : calc.isReady ? '🔔 Ready at Counter' : `Cook Time: ${calc.formattedMMSS} left (${calc.factors.foodType.primaryDish})`}
+          </span>
+          ${calc.factors.sameFoodCondition.hasSameFoodMatch ? `
+            <span class="badge badge-gold" style="font-size: 0.65rem; margin-left: 4px;" title="Same food being cooked on tawa/wok">🥘 Batch Synergy</span>
+          ` : ''}
         </div>
 
         <div style="background: rgba(0,0,0,0.25); border-radius: 6px; padding: 8px 10px; font-size: 0.85rem;">
