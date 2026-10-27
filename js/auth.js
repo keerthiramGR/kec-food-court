@@ -62,8 +62,8 @@ export function initAuth(showToast, renderApp) {
         const nameIn = document.getElementById('student-name');
         const rollIn = document.getElementById('student-roll');
         const mobileIn = document.getElementById('student-mobile');
-        if (nameIn) nameIn.value = 'Aravind Kumar';
-        if (rollIn) rollIn.value = '21EC108';
+        if (nameIn) nameIn.value = 'KEERTHIRAM G R';
+        if (rollIn) rollIn.value = '25CSR134';
         if (mobileIn) mobileIn.value = '9876543210';
       } else if (role === 'shop_owner') {
         populateShopManagerDropdown();
