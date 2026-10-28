@@ -7,6 +7,7 @@ export function renderStudentPortal(container, showToast, renderApp) {
   const orders = state.getOrders();
   const currentUser = state.getCurrentUser();
   const isStudentLoggedIn = currentUser && currentUser.role === 'student';
+  const crowd = state.getCrowdData();
 
   // Trigger immediate cross-device sync when student portal is rendered
   try { state.syncBackendOrders(); } catch (e) {}
@@ -84,11 +85,11 @@ export function renderStudentPortal(container, showToast, renderApp) {
           <div class="stat-label">Avg Pickup Time</div>
         </div>
       </div>
-      <div class="stat-card">
-        <div class="stat-icon" style="color: #EC4899;">🥗</div>
+      <div class="stat-card" id="student-crowd-stat-card" title="Live Food Court Crowd via ESP32-CAM AI Vision">
+        <div class="stat-icon" style="color: ${crowd.color || '#10B981'};">👥</div>
         <div>
-          <div class="stat-value">100% Pure</div>
-          <div class="stat-label">Hygiene Certified</div>
+          <div class="stat-value" id="student-crowd-count" style="color: ${crowd.color || '#10B981'};">${crowd.count} Persons</div>
+          <div class="stat-label" id="student-crowd-level">Crowd: ${crowd.level}</div>
         </div>
       </div>
     </div>
@@ -217,36 +218,12 @@ export function renderStudentPortal(container, showToast, renderApp) {
       <div class="stalls-grid" id="stalls-grid-container">
         <!-- Rendered dynamically -->
       </div>
-
-      <!-- Direct Delicacies & Food Menu Section -->
-      <div id="direct-menu-section" style="margin-top: 36px; padding-top: 24px; border-top: 1px solid var(--border-glass);">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
-          <div>
-            <h2 style="font-size: 1.6rem; display: flex; align-items: center; gap: 10px;">
-              <span>🍽️</span> Food Menu & Live Delicacies
-            </h2>
-            <p style="font-size: 0.88rem; color: var(--text-secondary);">Browse dishes across all counters, check live servings & add straight to your tray</p>
-          </div>
-          <div style="display: flex; gap: 8px; flex-wrap: wrap;" id="direct-diet-filters">
-            <button class="btn btn-sm btn-primary direct-diet-btn" data-diet="all">All Dishes</button>
-            <button class="btn btn-sm btn-secondary direct-diet-btn" data-diet="veg" style="border-color: #10B981;">🟢 Veg Only</button>
-            <button class="btn btn-sm btn-secondary direct-diet-btn" data-diet="non-veg" style="border-color: #EF4444;">🔴 Non-Veg</button>
-          </div>
-        </div>
-
-        <div class="menu-items-grid" id="direct-menu-items-grid">
-          <!-- Populated dynamically -->
-        </div>
-      </div>
     </div>
   `;
 
-  let directDietFilter = 'all';
-
-  // Render stall cards & direct food menu items
+  // Render stall cards
   function updateStallGrid() {
     const grid = document.getElementById('stalls-grid-container');
-    const directMenuGrid = document.getElementById('direct-menu-items-grid');
     if (!grid) return;
     const filtered = getFilteredShops();
 
@@ -257,13 +234,6 @@ export function renderStudentPortal(container, showToast, renderApp) {
           <button class="btn btn-secondary btn-sm" id="btn-reset-filters">Reset Filters</button>
         </div>
       `;
-      if (directMenuGrid) {
-        directMenuGrid.innerHTML = `
-          <div class="glass-panel" style="padding: 30px; text-align: center; grid-column: 1 / -1; color: var(--text-secondary);">
-            No food menu items matched "${searchQuery}".
-          </div>
-        `;
-      }
       const resetBtn = document.getElementById('btn-reset-filters');
       if (resetBtn) {
         resetBtn.addEventListener('click', () => {
@@ -341,100 +311,6 @@ export function renderStudentPortal(container, showToast, renderApp) {
       `;
     }).join('');
 
-    // Render Direct Food Menu Grid (so all dishes are immediately visible!)
-    if (directMenuGrid) {
-      const allDishes = [];
-      filtered.forEach(s => {
-        (s.menu || []).forEach(m => {
-          allDishes.push({ ...m, shopId: s.id, shopName: s.name, stallNumber: s.stallNumber });
-        });
-      });
-
-      const visibleDishes = allDishes.filter(item => {
-        const matchesSearch = searchQuery === '' ||
-          item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (item.category && item.category.toLowerCase().includes(searchQuery.toLowerCase())) ||
-          (item.shopName && item.shopName.toLowerCase().includes(searchQuery.toLowerCase()));
-        const matchesDiet = directDietFilter === 'all' ||
-          (directDietFilter === 'veg' && item.isVeg) ||
-          (directDietFilter === 'non-veg' && !item.isVeg);
-        return matchesSearch && matchesDiet;
-      });
-
-      if (visibleDishes.length === 0) {
-        directMenuGrid.innerHTML = `
-          <div class="glass-panel" style="padding: 30px; text-align: center; grid-column: 1 / -1; color: var(--text-secondary);">
-            No delicacies found matching filters.
-          </div>
-        `;
-      } else {
-        directMenuGrid.innerHTML = visibleDishes.map(item => {
-          const servings = item.servingsCount !== undefined ? item.servingsCount : 25;
-          const isAvailable = item.isAvailable && servings > 0;
-          let servingsBadge = '';
-          if (!isAvailable || servings <= 0) {
-            servingsBadge = `<span class="badge badge-rose" style="padding: 2px 6px; font-size: 0.68rem;">🔴 Sold Out</span>`;
-          } else if (servings <= 5) {
-            servingsBadge = `<span class="badge badge-gold" style="padding: 2px 6px; font-size: 0.68rem; color: #F59E0B;">🔥 Only ${servings} left!</span>`;
-          } else {
-            servingsBadge = `<span class="badge badge-emerald" style="padding: 2px 6px; font-size: 0.68rem;">🟢 ${servings} left</span>`;
-          }
-
-          return `
-            <div class="menu-item-card">
-              <img src="${item.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300'}" alt="${item.name}" class="menu-item-img" loading="lazy" />
-              <div class="menu-item-details">
-                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
-                  <span class="diet-indicator ${item.isVeg ? 'veg' : 'non-veg'}" title="${item.isVeg ? 'Vegetarian' : 'Non-Vegetarian'}"></span>
-                  <span class="menu-item-name">${item.name}</span>
-                </div>
-                <div class="menu-item-price">₹${item.price} <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">(${item.stallNumber})</span></div>
-                <div class="menu-item-tags">
-                  <span style="color: var(--text-secondary);">⏱️ ${item.prepTime || '10m'}</span>
-                  ${servingsBadge}
-                  ${item.badge ? `<span class="badge badge-gold" style="padding: 2px 6px; font-size: 0.68rem;">${item.badge}</span>` : ''}
-                </div>
-              </div>
-
-              <div>
-                ${isAvailable ? `
-                  <button class="btn btn-primary btn-sm btn-direct-add-cart" data-item-id="${item.id}" data-shop-id="${item.shopId}">
-                    + Add
-                  </button>
-                ` : `
-                  <button class="btn btn-secondary btn-sm" disabled style="opacity: 0.5; cursor: not-allowed;">
-                    Sold Out
-                  </button>
-                `}
-              </div>
-            </div>
-          `;
-        }).join('');
-
-        // Bind Direct Add to Cart buttons
-        directMenuGrid.querySelectorAll('.btn-direct-add-cart').forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const itemId = btn.dataset.itemId;
-            const shopId = btn.dataset.shopId;
-            const freshShop = state.getShopById(shopId);
-            if (!freshShop) return;
-            const targetItem = (freshShop.menu || []).find(m => m.id === itemId);
-            if (targetItem) {
-              const result = state.addToCart(targetItem, freshShop);
-              if (!result.success) {
-                showToast(result.message, 'warning');
-              } else {
-                showToast(`Added "${targetItem.name}" to tray! (${result.remaining} left)`, 'success');
-                updateCartBadge();
-                updateStallGrid();
-              }
-            }
-          });
-        });
-      }
-    }
-
     // Bind Stall Card & View Menu Button Clicks to open Menu Modal
     grid.querySelectorAll('.stall-card').forEach(card => {
       card.addEventListener('click', (e) => {
@@ -451,21 +327,6 @@ export function renderStudentPortal(container, showToast, renderApp) {
       });
     });
   }
-
-  // Diet filter buttons for direct food menu
-  const directDietBtns = container.querySelectorAll('.direct-diet-btn');
-  directDietBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      directDietBtns.forEach(b => {
-        b.classList.remove('btn-primary');
-        b.classList.add('btn-secondary');
-      });
-      btn.classList.remove('btn-secondary');
-      btn.classList.add('btn-primary');
-      directDietFilter = btn.dataset.diet;
-      updateStallGrid();
-    });
-  });
 
   // Setup Event Listeners
   const searchInput = document.getElementById('stall-search-input');

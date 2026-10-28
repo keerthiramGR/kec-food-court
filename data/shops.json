@@ -61,7 +61,7 @@
         "category": "Parotta & Roti",
         "prepTime": "6m",
         "isAvailable": true,
-        "servingsCount": 24
+        "servingsCount": 23
       },
       {
         "id": "f-5",
@@ -163,7 +163,8 @@
         "price": 60,
         "category": "Dosa & Roast",
         "prepTime": "7m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 24
       },
       {
         "id": "f-14",

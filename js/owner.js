@@ -523,6 +523,8 @@ export function renderOwnerPortal(container, showToast, renderApp) {
     .filter(o => o.status !== 'Cancelled')
     .reduce((sum, o) => sum + (o.totalAmount || 0), 0);
 
+  const crowd = state.getCrowdData();
+
   const menuCategories = ['all', ...Array.from(new Set((currentShop.menu || []).map(d => d.category).filter(Boolean)))];
 
   // Prepare Hourly Revenue Timeline Data for Graph
@@ -687,6 +689,61 @@ export function renderOwnerPortal(container, showToast, renderApp) {
         <div>
           <div class="stat-value">${completedOrders.length}</div>
           <div class="stat-label">Completed Pickups</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================================================================
+         ESP32-CAM AI HARDWARE CROWD TELEMETRY MONITOR (LIVE FOOD COURT VISION)
+         ========================================================================= -->
+    <div class="esp32-crowd-widget" id="esp32-crowd-card" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(6, 182, 212, 0.05) 50%, rgba(15, 23, 42, 0.7) 100%); border: 1.5px solid ${crowd.color ? crowd.color + '55' : 'rgba(16, 185, 129, 0.4)'}; border-radius: var(--radius-lg); padding: 18px 24px; margin-bottom: 26px; box-shadow: var(--shadow-card); position: relative; overflow: hidden; transition: border-color var(--transition-fast);">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <div style="width: 54px; height: 54px; border-radius: 12px; background: rgba(16, 185, 129, 0.15); border: 1.5px solid rgba(16, 185, 129, 0.4); display: flex; align-items: center; justify-content: center; font-size: 1.9rem; flex-shrink: 0; box-shadow: 0 0 16px rgba(16, 185, 129, 0.25);">
+            📷
+          </div>
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <span style="font-size: 0.74rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; color: #10B981; background: rgba(16, 185, 129, 0.15); padding: 3px 9px; border-radius: 4px; border: 1px solid rgba(16, 185, 129, 0.3);">
+                📡 ESP32-CAM HARDWARE
+              </span>
+              <span class="live-dot-mini" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10B981; box-shadow: 0 0 8px #10B981; animation: pulseGlow 1.4s infinite;"></span>
+              <span style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600;" id="esp32-stream-status">${crowd.status || 'Active AI Vision Stream'}</span>
+            </div>
+            <h3 style="font-size: 1.3rem; font-weight: 800; color: #FFFFFF; margin: 4px 0 2px;">
+              Food Court Live Crowd Density
+            </h3>
+            <div style="font-size: 0.8rem; color: var(--text-muted); display: flex; gap: 10px; flex-wrap: wrap;">
+              <span>ESP32 Node IP: <code style="color: var(--primary-gold); background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px;" id="esp32-ip-display">${crowd.esp32_ip || '10.79.86.13'}</code></span>
+              <span>• AI Vision Model: <strong style="color: #FFF;">YOLOv8n (Person Counter)</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+          <div style="text-align: right;">
+            <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Live People Inside</div>
+            <div style="font-size: 2.4rem; font-weight: 900; line-height: 1.05; font-family: var(--font-mono); color: ${crowd.color || '#10B981'}; display: flex; align-items: baseline; gap: 6px; justify-content: flex-end;" id="esp32-people-count">
+              <span>${crowd.count}</span>
+              <span style="font-size: 0.92rem; font-weight: 600; color: var(--text-secondary);">Persons</span>
+            </div>
+          </div>
+
+          <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
+            <span class="badge" style="font-size: 0.86rem; font-weight: 800; padding: 6px 14px; background: rgba(0, 0, 0, 0.35); border: 1.5px solid ${crowd.color || '#10B981'}; color: ${crowd.color || '#10B981'};" id="esp32-crowd-level">
+              ${crowd.level}
+            </span>
+            <span style="font-size: 0.72rem; color: var(--text-muted);" id="esp32-last-updated">
+              Updated: Just now
+            </span>
+          </div>
+
+          <!-- Quick Interactive Hardware Tester Buttons -->
+          <div style="display: flex; align-items: center; gap: 5px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); border-radius: 8px; padding: 4px 6px;">
+            <button class="btn btn-xs btn-secondary" id="btn-crowd-minus" title="Simulate: Decrement detected count" style="width: 26px; height: 26px; padding: 0; font-weight: 800;">-</button>
+            <button class="btn btn-xs btn-secondary" id="btn-crowd-plus" title="Simulate: Increment detected count" style="width: 26px; height: 26px; padding: 0; font-weight: 800;">+</button>
+            <button class="btn btn-xs btn-outline-gold" id="btn-crowd-sync" title="Sync live hardware from ESP32-CAM" style="height: 26px; padding: 0 8px; font-size: 0.75rem;">🔄 Sync</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1701,5 +1758,70 @@ export function renderOwnerPortal(container, showToast, renderApp) {
     }
 
     modal.classList.add('open');
+  }
+
+  // ---------------------------------------------------------------------------
+  // 9. Real-Time Background Crowd Poller for Manager Dashboard
+  // ---------------------------------------------------------------------------
+  if (window._ownerCrowdPoller) {
+    clearInterval(window._ownerCrowdPoller);
+    window._ownerCrowdPoller = null;
+  }
+  window._ownerCrowdPoller = setInterval(async () => {
+    try {
+      const data = await state.syncCrowdData();
+      const countEl = document.getElementById('esp32-people-count');
+      const levelEl = document.getElementById('esp32-crowd-level');
+      const ipEl = document.getElementById('esp32-ip-display');
+      const statusEl = document.getElementById('esp32-stream-status');
+      const updatedEl = document.getElementById('esp32-last-updated');
+      const cardEl = document.getElementById('esp32-crowd-card');
+
+      if (countEl && data) {
+        countEl.innerHTML = `<span>${data.count}</span><span style="font-size: 0.92rem; font-weight: 600; color: var(--text-secondary);">Persons</span>`;
+        countEl.style.color = data.color || '#10B981';
+      }
+      if (levelEl && data) {
+        levelEl.textContent = data.level;
+        levelEl.style.color = data.color || '#10B981';
+        levelEl.style.borderColor = data.color || '#10B981';
+      }
+      if (ipEl && data && data.esp32_ip) ipEl.textContent = data.esp32_ip;
+      if (statusEl && data && data.status) statusEl.textContent = data.status;
+      if (updatedEl && data && data.lastUpdated) {
+        const secs = Math.max(0, Math.round((Date.now() - data.lastUpdated) / 1000));
+        updatedEl.textContent = secs <= 3 ? 'Updated: Just now' : `Updated: ${secs}s ago`;
+      }
+      if (cardEl && data) {
+        cardEl.style.borderColor = data.color ? `${data.color}55` : 'rgba(16, 185, 129, 0.4)';
+      }
+    } catch (e) {}
+  }, 2000);
+
+  // Bind Hardware Simulator Controls
+  const btnMinus = container.querySelector('#btn-crowd-minus');
+  const btnPlus = container.querySelector('#btn-crowd-plus');
+  const btnSync = container.querySelector('#btn-crowd-sync');
+  if (btnMinus) {
+    btnMinus.addEventListener('click', async () => {
+      const current = state.getCrowdData();
+      const newCount = Math.max(0, (current.count || 0) - 1);
+      const updated = await state.updateCrowdCount(newCount);
+      if (showToast) showToast(`Hardware Telemetry: ${updated.count} People (${updated.level})`, 'info');
+    });
+  }
+  if (btnPlus) {
+    btnPlus.addEventListener('click', async () => {
+      const current = state.getCrowdData();
+      const newCount = (current.count || 0) + 1;
+      const updated = await state.updateCrowdCount(newCount);
+      if (showToast) showToast(`Hardware Telemetry: ${updated.count} People (${updated.level})`, 'info');
+    });
+  }
+  if (btnSync) {
+    btnSync.addEventListener('click', async () => {
+      const fresh = await state.syncCrowdData();
+      if (showToast) showToast(`Live ESP32-CAM Sync: ${fresh.count} People (${fresh.level})`, 'success');
+    });
   }
 }

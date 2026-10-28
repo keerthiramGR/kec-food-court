@@ -21,6 +21,16 @@ if (!fs.existsSync(DATA_DIR)) {
 const ORDERS_FILE = path.join(DATA_DIR, 'orders.json');
 const STUDENTS_FILE = path.join(DATA_DIR, 'students.json');
 const SHOPS_FILE = path.join(DATA_DIR, 'shops.json');
+const CROWD_FILE = path.join(DATA_DIR, 'crowd.json');
+
+let crowdData = loadJSON(CROWD_FILE, {
+  count: 4,
+  level: "MEDIUM",
+  color: "#F59E0B",
+  esp32_ip: "10.79.86.13",
+  status: "Online",
+  lastUpdated: Date.now()
+});
 
 function loadJSON(filePath, fallbackData) {
   try {
@@ -744,6 +754,42 @@ app.get('/api/qrcode', async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
+});
+// --------------------------------------------------------------------------
+// ESP32-CAM AI VISION HARDWARE TELEMETRY ENDPOINTS
+// --------------------------------------------------------------------------
+app.get('/api/crowd', (req, res) => {
+  res.json({ success: true, crowd: crowdData });
+});
+
+app.post('/api/crowd', (req, res) => {
+  const { count, level, esp32_ip } = req.body;
+  const numCount = Number.isInteger(Number(count)) ? Math.max(0, parseInt(count)) : 0;
+
+  let computedLevel = level;
+  let color = "#10B981"; // green
+  if (numCount <= 3) {
+    computedLevel = "LOW - Go now!";
+    color = "#10B981";
+  } else if (numCount <= 8) {
+    computedLevel = "MEDIUM";
+    color = "#F59E0B"; // amber
+  } else {
+    computedLevel = "HIGH - Wait";
+    color = "#EF4444"; // rose
+  }
+
+  crowdData = {
+    count: numCount,
+    level: computedLevel,
+    color,
+    esp32_ip: esp32_ip || crowdData.esp32_ip || "10.79.86.13",
+    status: "Active Stream",
+    lastUpdated: Date.now()
+  };
+
+  saveJSON(CROWD_FILE, crowdData);
+  res.json({ success: true, crowd: crowdData });
 });
 
 app.patch('/api/orders/:id/status', async (req, res) => {

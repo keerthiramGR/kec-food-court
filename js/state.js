@@ -27,7 +27,8 @@ const STORAGE_KEYS = {
   SHOPS: 'kec_foodcourt_shops_v5',
   ORDERS: 'kec_foodcourt_orders_v5',
   CURRENT_USER: 'kec_foodcourt_user_v2',
-  CART: 'kec_foodcourt_cart_v2'
+  CART: 'kec_foodcourt_cart_v2',
+  CROWD: 'kec_foodcourt_crowd_v1'
 };
 
 class FoodCourtState {
@@ -37,6 +38,7 @@ class FoodCourtState {
     this.initSyncChannel();
     this.syncBackendShops();
     this.syncBackendOrders();
+    this.syncCrowdData();
     this.startPeriodicSync();
   }
 
@@ -45,6 +47,7 @@ class FoodCourtState {
       setInterval(() => {
         this.syncBackendShops();
         this.syncBackendOrders();
+        this.syncCrowdData();
       }, 4000);
     }
   }
@@ -251,6 +254,67 @@ class FoodCourtState {
       servingsCount: cleanCount,
       isAvailable: cleanCount > 0
     });
+  }
+
+  getCrowdData() {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.CROWD);
+      if (stored) return JSON.parse(stored);
+    } catch (e) {}
+    return {
+      count: 4,
+      level: "MEDIUM",
+      color: "#F59E0B",
+      esp32_ip: "10.79.86.13",
+      status: "Online",
+      lastUpdated: Date.now()
+    };
+  }
+
+  async syncCrowdData() {
+    try {
+      const baseUrl = getApiBaseUrl();
+      const res = await fetch(`${baseUrl}/api/crowd`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.crowd) {
+          localStorage.setItem(STORAGE_KEYS.CROWD, JSON.stringify(data.crowd));
+          this.notify('CROWD_UPDATED', data.crowd);
+          return data.crowd;
+        }
+      }
+    } catch (e) {}
+    return this.getCrowdData();
+  }
+
+  async updateCrowdCount(count, level, esp32_ip) {
+    try {
+      const baseUrl = getApiBaseUrl();
+      const res = await fetch(`${baseUrl}/api/crowd`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ count, level, esp32_ip })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.crowd) {
+          localStorage.setItem(STORAGE_KEYS.CROWD, JSON.stringify(data.crowd));
+          this.notify('CROWD_UPDATED', data.crowd);
+          return data.crowd;
+        }
+      }
+    } catch (e) {}
+    const fallback = {
+      count: parseInt(count) || 0,
+      level: level || (count <= 3 ? "LOW - Go now!" : count <= 8 ? "MEDIUM" : "HIGH - Wait"),
+      color: count <= 3 ? "#10B981" : count <= 8 ? "#F59E0B" : "#EF4444",
+      esp32_ip: esp32_ip || "10.79.86.13",
+      status: "Active Stream",
+      lastUpdated: Date.now()
+    };
+    localStorage.setItem(STORAGE_KEYS.CROWD, JSON.stringify(fallback));
+    this.notify('CROWD_UPDATED', fallback);
+    return fallback;
   }
 
   getShopById(shopId) {

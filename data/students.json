@@ -1,5 +1,20 @@
 [
   {
+    "id": "std_25CSR173",
+    "name": "mithun",
+    "rollNo": "25CSR173",
+    "mobile": "7708862192",
+    "department": "Campus Diner",
+    "year": "Active Student",
+    "walletBalance": 850,
+    "avatar": "🎓",
+    "totalOrders": 1,
+    "totalSpent": 126,
+    "lastLogin": "2026-10-28T05:47:06.507Z",
+    "createdAt": "2026-10-28T05:47:06.507Z",
+    "lastOrderTime": "2026-10-28T05:47:39.431Z"
+  },
+  {
     "id": "std_25CSR131",
     "name": "YUTHISTAN",
     "rollNo": "25CSR131",
