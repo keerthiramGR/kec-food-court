@@ -989,8 +989,14 @@ app.get('/api/students/:rollNo', (req, res) => {
   });
 });
 
-// Serve frontend static assets
-app.use(express.static(__dirname));
+// Serve frontend static assets with no-cache headers for instant live updates
+app.use(express.static(__dirname, {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.js') || filePath.endsWith('.css') || filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
+  }
+}));
 
 // Fallback for SPA routing
 app.use((req, res) => {
