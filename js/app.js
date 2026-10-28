@@ -1,7 +1,7 @@
 import { state } from './state.js';
 import { initSplash } from './splash.js';
 import { initAuth } from './auth.js';
-import { renderStudentPortal, updateCartBadge } from './student.js';
+import { renderStudentPortal, updateCartBadge } from './student.js?v=3.0';
 import { renderOwnerPortal } from './owner.js';
 import { renderAdminPortal } from './admin.js';
 import { openPaymentModal } from './payment.js';
@@ -88,6 +88,9 @@ export function renderApp() {
 
   // Render Portal Content into App Container
   if (appContainer) {
+    const staleDirectMenu = document.getElementById('direct-menu-section');
+    if (staleDirectMenu) staleDirectMenu.remove();
+
     if (activePortal === 'student') {
       renderStudentPortal(appContainer, showToast, renderApp);
     } else if (activePortal === 'owner') {
@@ -95,6 +98,9 @@ export function renderApp() {
     } else if (activePortal === 'admin') {
       renderAdminPortal(appContainer, showToast, renderApp);
     }
+
+    const postStale = document.getElementById('direct-menu-section');
+    if (postStale) postStale.remove();
   }
 
   updateCartBadge();

@@ -768,3 +768,13 @@ html.dark .toast {
     padding: 10px 12px;
   }
 }
+
+#direct-menu-section, #direct-menu-items-grid, .direct-diet-btn, #direct-diet-filters {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  max-height: 0 !important;
+  overflow: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
