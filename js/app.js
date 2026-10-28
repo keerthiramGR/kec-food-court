@@ -103,7 +103,7 @@ export function renderApp() {
 // Portal Switcher
 window.switchAppPortal = function(portalName) {
   activePortal = portalName;
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo(0, 0);
   renderApp();
 };
 
@@ -251,21 +251,81 @@ function initCartModal() {
   };
 }
 
-// Global modal closer binding
+// Global modal closer & scroll lock manager
 function initGlobalModals() {
-  document.querySelectorAll('.modal-close-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open'));
-    });
+  function checkAndRestoreScroll() {
+    setTimeout(() => {
+      const anyModalOpen = Boolean(document.querySelector('.modal-overlay.open'));
+      const splashActive = Boolean(document.getElementById('splash-screen') && !document.getElementById('splash-screen').classList.contains('hidden'));
+      if (!anyModalOpen && !splashActive) {
+        document.body.classList.remove('modal-open');
+        document.body.classList.remove('splash-active');
+        document.body.style.overflow = '';
+        document.documentElement.style.overflow = '';
+      } else if (anyModalOpen) {
+        document.body.classList.add('modal-open');
+      }
+    }, 50);
+  }
+
+  // Delegated close listener for all close buttons and backdrops (works for static and dynamic modals)
+  document.addEventListener('click', (e) => {
+    const closeBtn = e.target.closest('.modal-close-btn') || e.target.closest('[data-modal-close]') || e.target.closest('#btn-close-print-modal');
+    if (closeBtn) {
+      const modal = closeBtn.closest('.modal-overlay');
+      if (modal) {
+        modal.classList.remove('open');
+        modal.style.display = '';
+        modal.style.visibility = '';
+      } else {
+        document.querySelectorAll('.modal-overlay.open').forEach(m => {
+          m.classList.remove('open');
+          m.style.display = '';
+          m.style.visibility = '';
+        });
+      }
+      checkAndRestoreScroll();
+      return;
+    }
+
+    // Backdrop click outside modal-box
+    if (e.target.classList.contains('modal-overlay')) {
+      e.target.classList.remove('open');
+      e.target.style.display = '';
+      e.target.style.visibility = '';
+      checkAndRestoreScroll();
+    }
   });
 
-  document.querySelectorAll('.modal-overlay').forEach(modal => {
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        modal.classList.remove('open');
+  // Escape key closes open modals
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const openModals = document.querySelectorAll('.modal-overlay.open');
+      if (openModals.length > 0) {
+        openModals.forEach(m => {
+          m.classList.remove('open');
+          m.style.display = '';
+          m.style.visibility = '';
+        });
+        checkAndRestoreScroll();
       }
-    });
+    }
   });
+
+  // Watchdog timer: Guarantee body scroll is never permanently locked if no modal is visible
+  setInterval(() => {
+    const anyModalOpen = Boolean(document.querySelector('.modal-overlay.open'));
+    const splashActive = Boolean(document.getElementById('splash-screen') && !document.getElementById('splash-screen').classList.contains('hidden'));
+    if (!anyModalOpen && !splashActive) {
+      if (document.body.classList.contains('modal-open') || document.body.style.overflow === 'hidden') {
+        document.body.classList.remove('modal-open');
+        document.body.classList.remove('splash-active');
+        document.body.style.overflow = '';
+      }
+    }
+  }, 1000);
+
+  window.syncScrollLockState = checkAndRestoreScroll;
 }
 
 // Light / Dark Theme Manager

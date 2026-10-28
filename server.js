@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import QRCode from 'qrcode';
 import { createClient } from '@supabase/supabase-js';
@@ -11,6 +12,35 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Persistent Data Storage Directory & Paths
+const DATA_DIR = path.join(__dirname, 'data');
+if (!fs.existsSync(DATA_DIR)) {
+  try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch (e) {}
+}
+const ORDERS_FILE = path.join(DATA_DIR, 'orders.json');
+const STUDENTS_FILE = path.join(DATA_DIR, 'students.json');
+const SHOPS_FILE = path.join(DATA_DIR, 'shops.json');
+
+function loadJSON(filePath, fallbackData) {
+  try {
+    if (fs.existsSync(filePath)) {
+      const content = fs.readFileSync(filePath, 'utf-8');
+      return JSON.parse(content);
+    }
+  } catch (err) {
+    console.warn(`⚠️ Notice reading ${path.basename(filePath)}:`, err.message);
+  }
+  return fallbackData;
+}
+
+function saveJSON(filePath, data) {
+  try {
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (err) {
+    console.error(`❌ Error writing ${path.basename(filePath)}:`, err.message);
+  }
+}
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ypytclolejmdyfmrpowk.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
@@ -27,22 +57,36 @@ const isSupabaseConfigured = Boolean(
 
 if (isSupabaseConfigured) {
   try {
-    supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-    console.log(`✅ Supabase connected: ${SUPABASE_URL}`);
+    supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: { persistSession: false },
+      global: { timeout: 1500 }
+    });
+    console.log(`✅ Supabase configured: ${SUPABASE_URL}`);
   } catch (err) {
     console.warn('⚠️ Supabase initialization warning:', err.message);
   }
 } else {
-  console.log('ℹ️ Running in resilient mode. Add SUPABASE_KEY to .env to enable direct Supabase live synchronization.');
+  console.log('ℹ️ Running in resilient mode with local persistent storage (data/orders.json, data/students.json).');
 }
 
 if (SUPABASE_SERVICE_ROLE_KEY && SUPABASE_SERVICE_ROLE_KEY.trim() !== '' && !SUPABASE_SERVICE_ROLE_KEY.includes('your_supabase')) {
   try {
-    supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false },
+      global: { timeout: 1500 }
+    });
     console.log(`✅ Supabase Admin (Auth) active: ${SUPABASE_URL}`);
   } catch (err) {
     console.warn('⚠️ Supabase Admin client warning:', err.message);
   }
+}
+
+// Helper to run Supabase operations with 1.2s timeout so DNS failure never blocks requests
+async function withSupabaseTimeout(promiseFn, timeoutMs = 1200) {
+  return Promise.race([
+    promiseFn(),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Supabase request timeout')), timeoutMs))
+  ]);
 }
 
 app.use(cors());
@@ -181,7 +225,42 @@ let shopsData = [
   }
 ];
 
-let ordersData = [];
+// Load or persist shops, orders, and students
+if (fs.existsSync(SHOPS_FILE)) {
+  const loaded = loadJSON(SHOPS_FILE, null);
+  if (Array.isArray(loaded) && loaded.length > 0) {
+    shopsData = loaded;
+  }
+} else {
+  saveJSON(SHOPS_FILE, shopsData);
+}
+
+let ordersData = loadJSON(ORDERS_FILE, []);
+if (!fs.existsSync(ORDERS_FILE)) {
+  saveJSON(ORDERS_FILE, ordersData);
+}
+
+const defaultStudents = [
+  {
+    id: "std_25CSR134",
+    name: "KEERTHIRAM G R",
+    rollNo: "25CSR134",
+    mobile: "9876543210",
+    department: "Computer Science & Engineering",
+    year: "Active Student",
+    walletBalance: 850,
+    avatar: "🎓",
+    totalOrders: 0,
+    totalSpent: 0,
+    lastLogin: new Date().toISOString(),
+    createdAt: new Date().toISOString()
+  }
+];
+
+let studentsData = loadJSON(STUDENTS_FILE, defaultStudents);
+if (!fs.existsSync(STUDENTS_FILE)) {
+  saveJSON(STUDENTS_FILE, studentsData);
+}
 
 // --------------------------------------------------------------------------
 // DATABASE FORMATTERS & HELPERS
@@ -495,19 +574,37 @@ app.delete('/api/shops/:id/menu/:itemId', async (req, res) => {
 
 // 6. Orders
 app.get('/api/orders', async (req, res) => {
+  const { rollNo } = req.query;
+
+  // Always refresh latest orders from persistent disk storage
+  ordersData = loadJSON(ORDERS_FILE, ordersData);
+
+  // Attempt fast Supabase sync if enabled, but don't stall
   if (supabase) {
     try {
-      const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
-      if (!error && data) {
-        ordersData = data.map(formatOrderFromDB);
-        return res.json({ success: true, count: ordersData.length, orders: ordersData, source: 'supabase' });
-      }
+      await withSupabaseTimeout(async () => {
+        let query = supabase.from('orders').select('*').order('created_at', { ascending: false });
+        if (rollNo) {
+          query = query.ilike('student_roll', rollNo.trim());
+        }
+        const { data, error } = await query;
+        if (!error && data) {
+          ordersData = data.map(formatOrderFromDB);
+          saveJSON(ORDERS_FILE, ordersData);
+        }
+      }, 1200);
     } catch (e) {
-      console.warn('Supabase orders query notice:', e.message);
+      // Supabase timeout or offline - rely on local disk store
     }
   }
 
-  res.json({ success: true, count: ordersData.length, orders: ordersData, source: 'memory' });
+  let results = ordersData;
+  if (rollNo) {
+    const cleanRoll = rollNo.trim().toUpperCase();
+    results = ordersData.filter(o => o.studentRoll && o.studentRoll.trim().toUpperCase() === cleanRoll);
+  }
+
+  res.json({ success: true, count: results.length, orders: results, source: 'disk_store' });
 });
 
 app.post('/api/orders', async (req, res) => {
@@ -572,19 +669,64 @@ app.post('/api/orders', async (req, res) => {
     });
   }
 
-  ordersData.unshift(newOrder);
+  // 1. Add order to in-memory and disk
+  const existingIndex = ordersData.findIndex(o => o.id === newOrder.id);
+  if (existingIndex !== -1) {
+    ordersData[existingIndex] = newOrder;
+  } else {
+    ordersData.unshift(newOrder);
+  }
+  saveJSON(ORDERS_FILE, ordersData);
+  if (touchedShops.size > 0) {
+    saveJSON(SHOPS_FILE, shopsData);
+  }
 
+  // 2. Persist student statistics in studentsData
+  const cleanRoll = String(newOrder.studentRoll || '').trim().toUpperCase();
+  if (cleanRoll && !cleanRoll.startsWith('GUEST-')) {
+    let student = studentsData.find(s => s.rollNo && s.rollNo.toUpperCase() === cleanRoll);
+    if (student) {
+      student.totalOrders = (student.totalOrders || 0) + 1;
+      student.totalSpent = (student.totalSpent || 0) + (Number(newOrder.totalAmount) || 0);
+      student.lastOrderTime = new Date().toISOString();
+      if (newOrder.studentName && (!student.name || student.name === 'Student')) {
+        student.name = newOrder.studentName;
+      }
+      if (newOrder.studentPhone && !student.mobile) {
+        student.mobile = newOrder.studentPhone;
+      }
+    } else {
+      student = {
+        id: `std_${cleanRoll}`,
+        name: newOrder.studentName || 'Student',
+        rollNo: cleanRoll,
+        mobile: newOrder.studentPhone || '',
+        department: "Computer Science & Engineering",
+        year: "Active Student",
+        walletBalance: 850,
+        avatar: "🎓",
+        totalOrders: 1,
+        totalSpent: Number(newOrder.totalAmount) || 0,
+        lastLogin: new Date().toISOString(),
+        lastOrderTime: new Date().toISOString(),
+        createdAt: new Date().toISOString()
+      };
+      studentsData.unshift(student);
+    }
+    saveJSON(STUDENTS_FILE, studentsData);
+  }
+
+  // 3. Background sync with Supabase if available
   if (supabase) {
-    try {
-      await supabase.from('orders').insert([formatOrderToDB(newOrder)]);
+    withSupabaseTimeout(async () => {
+      await supabase.from('orders').upsert([formatOrderToDB(newOrder)], { onConflict: 'id' });
       for (const s of touchedShops) {
         await supabase.from('shops').update({ menu: s.menu }).eq('id', s.id);
       }
-    } catch (e) {
-      console.warn('Supabase order insert notice:', e.message);
-    }
+    }, 1200).catch(e => console.warn('Supabase order insert note:', e.message));
   }
 
+  console.log(`📦 Order placed & saved: ${newOrder.id} (${newOrder.tokenNumber}) for ${newOrder.studentName} (${cleanRoll})`);
   res.status(201).json({ success: true, order: newOrder });
 });
 
@@ -609,12 +751,42 @@ app.patch('/api/orders/:id/status', async (req, res) => {
   if (!order) return res.status(404).json({ success: false, error: "Order not found" });
 
   order.status = req.body.status;
+  if (req.body.status === 'Completed') {
+    order.deliveredTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+    order.deliveredDate = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  saveJSON(ORDERS_FILE, ordersData);
 
   if (supabase) {
-    try {
+    withSupabaseTimeout(async () => {
       await supabase.from('orders').update({ status: req.body.status }).eq('id', req.params.id);
-    } catch (e) {
-      console.warn('Supabase order status update notice:', e.message);
+    }, 1200).catch(e => console.warn('Supabase status update note:', e.message));
+  }
+
+  res.json({ success: true, order });
+});
+
+// 6c. Claim / Link unassigned order to student account
+app.patch('/api/orders/:id/claim', async (req, res) => {
+  const { studentRoll, studentName, studentPhone } = req.body;
+  ordersData = loadJSON(ORDERS_FILE, ordersData);
+  const order = ordersData.find(o => o.id === req.params.id);
+  if (!order) return res.status(404).json({ success: false, error: "Order not found" });
+
+  if (studentRoll) order.studentRoll = String(studentRoll).trim().toUpperCase();
+  if (studentName) order.studentName = String(studentName).trim();
+  if (studentPhone) order.studentPhone = String(studentPhone).trim();
+
+  saveJSON(ORDERS_FILE, ordersData);
+
+  // Also update student statistics in studentsData
+  if (order.studentRoll) {
+    let student = studentsData.find(s => s.rollNo && s.rollNo.toUpperCase() === order.studentRoll);
+    if (student) {
+      student.totalOrders = (student.totalOrders || 0) + 1;
+      student.totalSpent = (student.totalSpent || 0) + (Number(order.totalAmount) || 0);
+      saveJSON(STUDENTS_FILE, studentsData);
     }
   }
 
@@ -635,12 +807,13 @@ app.get('/api/stats', (req, res) => {
       totalShops: shopsData.length,
       activeKitchens,
       totalOrders: ordersData.length,
+      totalStudents: studentsData.length,
       totalRevenue
     }
   });
 });
 
-// 8. Student Login & Profile Registration (Stores in Supabase Auth & public.students)
+// 8. Student Login & Profile Registration (Stores in studentsData & Supabase Auth)
 app.post('/api/auth/student-login', async (req, res) => {
   const { name, rollNo, mobile, department, year } = req.body;
   if (!rollNo || !name) {
@@ -652,11 +825,34 @@ app.post('/api/auth/student-login', async (req, res) => {
   const cleanMobile = String(mobile || '').trim();
   const studentEmail = `${cleanRoll.toLowerCase()}@kec.ac.in`;
 
-  let supabaseUser = null;
+  // Upsert into local persistent studentsData
+  let student = studentsData.find(s => s.rollNo && s.rollNo.toUpperCase() === cleanRoll);
+  if (student) {
+    student.name = cleanName;
+    if (cleanMobile) student.mobile = cleanMobile;
+    student.lastLogin = new Date().toISOString();
+  } else {
+    student = {
+      id: `std_${cleanRoll}`,
+      name: cleanName,
+      rollNo: cleanRoll,
+      mobile: cleanMobile,
+      department: department || "Computer Science & Engineering",
+      year: year || "Active Student",
+      walletBalance: 850,
+      avatar: "🎓",
+      totalOrders: 0,
+      totalSpent: 0,
+      lastLogin: new Date().toISOString(),
+      createdAt: new Date().toISOString()
+    };
+    studentsData.unshift(student);
+  }
+  saveJSON(STUDENTS_FILE, studentsData);
 
-  // 1. Store in Supabase Auth via Admin Client
+  // Background sync with Supabase Auth
   if (supabaseAdmin) {
-    try {
+    withSupabaseTimeout(async () => {
       const { data: userList } = await supabaseAdmin.auth.admin.listUsers();
       const existing = (userList?.users || []).find(u => 
         u.email === studentEmail || 
@@ -664,7 +860,7 @@ app.post('/api/auth/student-login', async (req, res) => {
       );
 
       if (existing) {
-        const { data: updated } = await supabaseAdmin.auth.admin.updateUserById(existing.id, {
+        await supabaseAdmin.auth.admin.updateUserById(existing.id, {
           user_metadata: {
             name: cleanName,
             roll_no: cleanRoll,
@@ -674,9 +870,8 @@ app.post('/api/auth/student-login', async (req, res) => {
             last_login_at: new Date().toISOString()
           }
         });
-        supabaseUser = updated?.user || existing;
       } else {
-        const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
+        await supabaseAdmin.auth.admin.createUser({
           email: studentEmail,
           password: `kec_${cleanRoll.toLowerCase()}!`,
           email_confirm: true,
@@ -691,18 +886,13 @@ app.post('/api/auth/student-login', async (req, res) => {
             last_login_at: new Date().toISOString()
           }
         });
-        if (!error && created) {
-          supabaseUser = created.user;
-        }
       }
-    } catch (err) {
-      console.warn('Supabase Auth student sync notice:', err.message);
-    }
+    }, 1200).catch(err => console.warn('Supabase Auth student sync note:', err.message));
   }
 
-  // 2. Also upsert into public.students table if it exists
+  // Also sync to public.students table if accessible
   if (supabase) {
-    try {
+    withSupabaseTimeout(async () => {
       await supabase.from('students').upsert({
         id: `std_${cleanRoll}`,
         name: cleanName,
@@ -714,57 +904,43 @@ app.post('/api/auth/student-login', async (req, res) => {
         avatar: '🎓',
         last_login: new Date().toISOString()
       }, { onConflict: 'roll_no' });
-    } catch (e) {
-      // Table may not exist yet until user runs schema SQL
-    }
+    }, 1200).catch(() => {});
   }
 
-  console.log(`✅ Student login synchronized with Supabase: ${cleanName} (${cleanRoll})`);
+  console.log(`✅ Student logged in & profile saved: ${cleanName} (${cleanRoll})`);
   res.json({
     success: true,
     student: {
-      name: cleanName,
-      rollNo: cleanRoll,
-      mobile: cleanMobile,
-      email: studentEmail,
-      supabaseId: supabaseUser?.id || null
+      ...student,
+      email: studentEmail
     }
   });
 });
 
-// 9. Fetch all registered students from Supabase
-app.get('/api/auth/students', async (req, res) => {
-  let students = [];
+// 9. Fetch all registered students (Dataset of persons)
+app.get('/api/students', (req, res) => {
+  res.json({ success: true, count: studentsData.length, students: studentsData, source: 'disk_store' });
+});
 
-  // Try fetching from public.students table first
-  if (supabase) {
-    try {
-      const { data, error } = await supabase.from('students').select('*').order('last_login', { ascending: false });
-      if (!error && data && data.length > 0) {
-        return res.json({ success: true, count: data.length, students: data, source: 'supabase_table' });
-      }
-    } catch (e) {}
+app.get('/api/auth/students', (req, res) => {
+  res.json({ success: true, count: studentsData.length, students: studentsData, source: 'disk_store' });
+});
+
+// 10. Fetch specific student details and their orders
+app.get('/api/students/:rollNo', (req, res) => {
+  const cleanRoll = String(req.params.rollNo).trim().toUpperCase();
+  const student = studentsData.find(s => s.rollNo && s.rollNo.toUpperCase() === cleanRoll);
+  const studentOrders = ordersData.filter(o => o.studentRoll && o.studentRoll.trim().toUpperCase() === cleanRoll);
+
+  if (!student) {
+    return res.status(404).json({ success: false, error: "Student not found" });
   }
 
-  // Fallback to Supabase Auth users
-  if (supabaseAdmin) {
-    try {
-      const { data } = await supabaseAdmin.auth.admin.listUsers();
-      if (data && data.users) {
-        students = data.users.map(u => ({
-          id: u.id,
-          name: u.user_metadata?.name || u.email,
-          roll_no: u.user_metadata?.roll_no || '',
-          mobile: u.user_metadata?.mobile || '',
-          department: u.user_metadata?.department || '',
-          last_login: u.user_metadata?.last_login_at || u.last_sign_in_at || u.created_at
-        }));
-        return res.json({ success: true, count: students.length, students, source: 'supabase_auth' });
-      }
-    } catch (e) {}
-  }
-
-  res.json({ success: true, count: 0, students: [], source: 'empty' });
+  res.json({
+    success: true,
+    student,
+    orders: studentOrders
+  });
 });
 
 // Serve frontend static assets
@@ -776,8 +952,10 @@ app.use((req, res) => {
 });
 
 if (!process.env.VERCEL) {
-  app.listen(PORT, () => {
-    console.log(`🚀 KEC Food Court Node.js Express server running at http://localhost:${PORT}`);
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 KEC Food Court Express server running at:`);
+    console.log(`   - Local:   http://localhost:${PORT}`);
+    console.log(`   - Network: http://10.12.130.65:${PORT}`);
   });
 }
 

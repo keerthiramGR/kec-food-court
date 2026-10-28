@@ -1,5 +1,6 @@
-// Splash Screen Animation Controller for KEC FOOD COURT
+import { state } from './state.js';
 
+// Splash Screen Animation Controller for KEC FOOD COURT
 export function initSplash() {
   const splash = document.getElementById('splash-screen');
   const progressBar = document.getElementById('splash-progress-bar');
@@ -20,6 +21,8 @@ export function initSplash() {
   const intervalMs = 36;
   const step = 100 / (durationMs / intervalMs);
 
+  let isFinished = false;
+
   let timer = setInterval(() => {
     progress += step;
     if (progress > 100) progress = 100;
@@ -36,21 +39,42 @@ export function initSplash() {
 
     if (progress >= 100) {
       clearInterval(timer);
-      setTimeout(finishSplash, 300);
+      setTimeout(finishSplash, 250);
     }
   }, intervalMs);
 
+  // Safety watchdog: Max 4.5s splash lifespan to prevent getting stuck if tab is backgrounded
+  const maxTimer = setTimeout(() => {
+    if (!isFinished) finishSplash();
+  }, 4500);
+
   function finishSplash() {
+    if (isFinished) return;
+    isFinished = true;
     clearInterval(timer);
+    clearTimeout(maxTimer);
+
     splash.classList.add('hidden');
     document.body.classList.remove('splash-active');
+    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
 
-    // Reveal plain background login gateway right after intro
+    // Completely remove splash from pointer events and layout
     setTimeout(() => {
-      if (window.showLoginGateway) {
+      splash.style.display = 'none';
+      document.body.classList.remove('splash-active');
+      document.body.style.overflow = '';
+    }, 400);
+
+    // If no user is logged in, show login gateway; otherwise ensure gateway is hidden
+    const currentUser = state.getCurrentUser();
+    setTimeout(() => {
+      if (!currentUser && window.showLoginGateway) {
         window.showLoginGateway('student');
+      } else if (currentUser && window.hideLoginGateway) {
+        window.hideLoginGateway();
       }
-    }, 150);
+    }, 120);
   }
 
   if (skipBtn) {
@@ -59,12 +83,13 @@ export function initSplash() {
 
   // Provide a function to replay splash intro
   window.replaySplashIntro = function() {
+    splash.style.display = 'flex';
     splash.classList.remove('hidden');
     document.body.classList.add('splash-active');
     if (progressBar) progressBar.style.width = '0%';
     if (statusText) statusText.textContent = "Re-initializing KEC Food Court...";
     setTimeout(() => {
       initSplash();
-    }, 100);
+    }, 80);
   };
 }

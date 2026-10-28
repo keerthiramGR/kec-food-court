@@ -1,6 +1,28 @@
 import { INITIAL_SHOPS, INITIAL_ORDERS, DEFAULT_USERS } from './data.js';
 import { calculateOrderEstimatedPrep } from './countdown.js';
 
+export function getApiBaseUrl() {
+  if (typeof window !== 'undefined') {
+    // 1. Explicit override if set by user or network diagnostic
+    const custom = localStorage.getItem('kec_api_url');
+    if (custom && custom.trim() !== '') return custom.trim().replace(/\/+$/, '');
+
+    // 2. Browser environment on computer or phone over Wi-Fi
+    if (window.location.origin && window.location.origin !== 'null' && !window.location.origin.includes('file:')) {
+      return window.location.origin;
+    }
+  }
+  return '';
+}
+
+if (typeof window !== 'undefined') {
+  window.getKecApiBaseUrl = getApiBaseUrl;
+  window.setKecApiBaseUrl = (url) => {
+    localStorage.setItem('kec_api_url', url);
+    console.log('🔗 KEC Backend API URL set to:', url);
+  };
+}
+
 const STORAGE_KEYS = {
   SHOPS: 'kec_foodcourt_shops_v5',
   ORDERS: 'kec_foodcourt_orders_v5',
@@ -23,7 +45,7 @@ class FoodCourtState {
       setInterval(() => {
         this.syncBackendShops();
         this.syncBackendOrders();
-      }, 8000);
+      }, 4000);
     }
   }
 
@@ -61,7 +83,18 @@ class FoodCourtState {
   init() {
     // Load or seed shops with exactly 2 default shops: Food and Juice
     const storedShops = localStorage.getItem(STORAGE_KEYS.SHOPS);
-    if (!storedShops) {
+    let needShopSeed = !storedShops;
+    if (storedShops) {
+      try {
+        const parsed = JSON.parse(storedShops);
+        if (!Array.isArray(parsed) || parsed.length === 0 || !parsed.some(s => s.menu && s.menu.length > 0)) {
+          needShopSeed = true;
+        }
+      } catch (e) {
+        needShopSeed = true;
+      }
+    }
+    if (needShopSeed) {
       localStorage.setItem(STORAGE_KEYS.SHOPS, JSON.stringify(INITIAL_SHOPS));
     }
 
@@ -85,7 +118,6 @@ class FoodCourtState {
     // User session
     const storedUser = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
     if (!storedUser) {
-      // Default to null or guest view initially
       this.currentUser = null;
     } else {
       try {
@@ -115,12 +147,16 @@ class FoodCourtState {
 
   async syncBackendShops() {
     try {
-      const res = await fetch('/api/shops');
+      const res = await fetch(`${getApiBaseUrl()}/api/shops`);
       if (res.ok) {
         const data = await res.json();
         if (data && data.shops && data.shops.length > 0) {
-          localStorage.setItem(STORAGE_KEYS.SHOPS, JSON.stringify(data.shops));
-          this.notify('SHOPS_UPDATED', data.shops);
+          const prevRaw = localStorage.getItem(STORAGE_KEYS.SHOPS);
+          const nextRaw = JSON.stringify(data.shops);
+          if (prevRaw !== nextRaw) {
+            localStorage.setItem(STORAGE_KEYS.SHOPS, nextRaw);
+            this.notify('SHOPS_UPDATED', data.shops);
+          }
         }
       }
     } catch {
@@ -130,12 +166,42 @@ class FoodCourtState {
 
   async syncBackendOrders() {
     try {
-      const res = await fetch('/api/orders');
+      const baseUrl = getApiBaseUrl();
+      const res = await fetch(`${baseUrl}/api/orders`);
       if (res.ok) {
         const data = await res.json();
-        if (data && data.orders) {
-          localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(data.orders));
-          this.notify('ORDERS_UPDATED', data.orders);
+        if (data && Array.isArray(data.orders)) {
+          const localOrders = this.getOrders();
+          const serverOrderIds = new Set(data.orders.map(o => o.id));
+
+          // If an order was placed on this phone while temporarily offline, upload it to server now
+          for (const localOrder of localOrders) {
+            if (!serverOrderIds.has(localOrder.id) && localOrder.items && localOrder.totalAmount) {
+              try {
+                const uploadRes = await fetch(`${baseUrl}/api/orders`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(localOrder)
+                });
+                if (uploadRes.ok) {
+                  const uploaded = await uploadRes.json();
+                  if (uploaded && uploaded.order) {
+                    data.orders.unshift(uploaded.order);
+                    serverOrderIds.add(uploaded.order.id);
+                  }
+                }
+              } catch (e) {}
+            }
+          }
+
+          // Authoritative order list synchronized across phone and website
+          data.orders.sort((a, b) => (b.createdTime || 0) - (a.createdTime || 0));
+          const prevOrdersRaw = localStorage.getItem(STORAGE_KEYS.ORDERS);
+          const nextOrdersRaw = JSON.stringify(data.orders);
+          if (prevOrdersRaw !== nextOrdersRaw) {
+            localStorage.setItem(STORAGE_KEYS.ORDERS, nextOrdersRaw);
+            this.notify('ORDERS_UPDATED', data.orders);
+          }
         }
       }
     } catch {
@@ -224,7 +290,7 @@ class FoodCourtState {
 
     // Sync with Node.js backend
     try {
-      fetch('/api/shops', {
+      fetch(`${getApiBaseUrl()}/api/shops`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newShop)
@@ -244,7 +310,7 @@ class FoodCourtState {
 
       // Sync with Node.js backend
       try {
-        fetch(`/api/shops/${shopId}`, {
+        fetch(`${getApiBaseUrl()}/api/shops/${shopId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updateData)
@@ -272,7 +338,7 @@ class FoodCourtState {
 
       // Sync with Node.js backend
       try {
-        fetch(`/api/shops/${shopId}/menu`, {
+        fetch(`${getApiBaseUrl()}/api/shops/${shopId}/menu`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(newItem)
@@ -299,7 +365,7 @@ class FoodCourtState {
 
         // Sync with Node.js backend
         try {
-          fetch(`/api/shops/${shopId}/menu/${itemId}`, {
+          fetch(`${getApiBaseUrl()}/api/shops/${shopId}/menu/${itemId}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(updatedFields)
@@ -324,7 +390,7 @@ class FoodCourtState {
 
         // Sync with Node.js backend
         try {
-          fetch(`/api/shops/${shopId}/menu/${itemId}`, {
+          fetch(`${getApiBaseUrl()}/api/shops/${shopId}/menu/${itemId}`, {
             method: 'DELETE'
           }).catch(e => console.warn('Backend sync notice:', e));
         } catch {}
@@ -347,7 +413,7 @@ class FoodCourtState {
 
         // Sync with Node.js backend
         try {
-          fetch(`/api/shops/${shopId}/menu/${itemId}`, {
+          fetch(`${getApiBaseUrl()}/api/shops/${shopId}/menu/${itemId}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ isAvailable: item.isAvailable })
@@ -421,9 +487,9 @@ class FoodCourtState {
     this.notify('ORDER_CREATED', newOrder);
     this.broadcast('ORDER_CREATED', newOrder);
 
-    // Sync with Node.js & Supabase backend
+    // Sync with Node.js & Supabase backend across all devices
     try {
-      fetch('/api/orders', {
+      fetch(`${getApiBaseUrl()}/api/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newOrder)
@@ -453,7 +519,7 @@ class FoodCourtState {
 
       // Sync with Node.js backend
       try {
-        fetch(`/api/orders/${orderId}/status`, {
+        fetch(`${getApiBaseUrl()}/api/orders/${orderId}/status`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: newStatus })
@@ -474,6 +540,7 @@ class FoodCourtState {
     this.currentUser = userData;
     localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(userData));
     this.notify('AUTH_LOGIN', userData);
+    this.syncBackendOrders();
   }
 
   logout() {

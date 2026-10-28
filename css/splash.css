@@ -12,14 +12,15 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.8s;
+  transition: opacity 0.35s ease, visibility 0.35s ease;
 }
 
 #splash-screen.hidden {
   opacity: 0;
   transform: scale(1.08);
-  pointer-events: none;
-  visibility: hidden;
+  pointer-events: none !important;
+  visibility: hidden !important;
+  display: none !important;
 }
 
 /* Ambient Radial Glow and Particles */

@@ -8,7 +8,10 @@ export function renderStudentPortal(container, showToast, renderApp) {
   const currentUser = state.getCurrentUser();
   const isStudentLoggedIn = currentUser && currentUser.role === 'student';
 
-  // Filter student's active orders (No fake static orders for new users/guests)
+  // Trigger immediate cross-device sync when student portal is rendered
+  try { state.syncBackendOrders(); } catch (e) {}
+
+  // Filter student's active orders (Matches by roll number across mobile and web)
   let guestOrderIds = [];
   try {
     guestOrderIds = JSON.parse(localStorage.getItem('kec_guest_order_ids') || '[]');
@@ -16,8 +19,9 @@ export function renderStudentPortal(container, showToast, renderApp) {
     guestOrderIds = [];
   }
 
-  const studentOrders = (isStudentLoggedIn && currentUser && currentUser.rollNo)
-    ? orders.filter(o => o.studentRoll && o.studentRoll.toLowerCase() === currentUser.rollNo.toLowerCase())
+  const cleanCurrentRoll = (currentUser && currentUser.rollNo) ? String(currentUser.rollNo).trim().toUpperCase() : '';
+  const studentOrders = cleanCurrentRoll
+    ? orders.filter(o => o.studentRoll && String(o.studentRoll).trim().toUpperCase() === cleanCurrentRoll)
     : orders.filter(o => guestOrderIds.includes(o.id));
 
   let currentCategory = 'all';
@@ -91,20 +95,29 @@ export function renderStudentPortal(container, showToast, renderApp) {
 
     <!-- Live Tokens Board if active -->
     <div id="student-tokens-section" style="margin-bottom: 40px;">
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
         <div>
           <h2 style="font-size: 1.4rem; display: flex; align-items: center; gap: 8px;">
             <span>🎟️</span> Live Campus Order Tokens
           </h2>
           <p style="font-size: 0.85rem; color: var(--text-secondary);">Real-time status updates from stall kitchens</p>
         </div>
-        <span class="badge badge-emerald">Live Kitchen Feed</span>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <button id="btn-sync-student-orders" class="btn btn-secondary btn-xs" style="cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Sync orders from campus server">
+            <span>🔄</span> Sync Server
+          </button>
+          <span class="badge badge-emerald">Live Kitchen Feed</span>
+        </div>
       </div>
 
       <div class="orders-board">
         ${studentOrders.length === 0 ? `
-          <div class="glass-panel" style="padding: 24px; text-align: center; grid-column: 1 / -1; color: var(--text-secondary);">
-            No active orders right now. Pick your favorite dish below to generate your token!
+          <div class="glass-panel" style="padding: 28px 20px; text-align: center; grid-column: 1 / -1; color: var(--text-secondary);">
+            <div style="font-size: 1.1rem; font-weight: 700; color: #FFFFFF; margin-bottom: 6px;">No Active Tokens For This Device</div>
+            <p style="font-size: 0.85rem; margin-bottom: 16px;">If you placed an order from your phone or another window with login <strong>${cleanCurrentRoll || 'KEERTHIRAM G R'}</strong>, sync now to load it:</p>
+            <button id="btn-sync-empty-state" class="btn btn-outline-gold btn-sm" style="display: inline-flex; align-items: center; gap: 6px;">
+              <span>🔄</span> Sync Orders from Campus Server
+            </button>
           </div>
         ` : studentOrders.map(order => {
           const calc = calculateOrderEstimatedPrep(order);
@@ -195,8 +208,8 @@ export function renderStudentPortal(container, showToast, renderApp) {
       <div class="student-filter-bar">
         <div class="filter-chips" id="category-filter-chips">
           <button class="filter-chip ${currentCategory === 'all' ? 'active' : ''}" data-cat="all">🍽️ All Stalls (2)</button>
-          <button class="filter-chip ${currentCategory === 'food' ? 'active' : ''}" data-cat="food">🍛 Food</button>
-          <button class="filter-chip ${currentCategory === 'juice' ? 'active' : ''}" data-cat="juice">🥤 Juice</button>
+          <button class="filter-chip ${currentCategory === 'food' ? 'active' : ''}" data-cat="food">🍛 Food Counter (66)</button>
+          <button class="filter-chip ${currentCategory === 'juice' ? 'active' : ''}" data-cat="juice">🥤 Juice Counter (4)</button>
         </div>
       </div>
 
@@ -204,12 +217,36 @@ export function renderStudentPortal(container, showToast, renderApp) {
       <div class="stalls-grid" id="stalls-grid-container">
         <!-- Rendered dynamically -->
       </div>
+
+      <!-- Direct Delicacies & Food Menu Section -->
+      <div id="direct-menu-section" style="margin-top: 36px; padding-top: 24px; border-top: 1px solid var(--border-glass);">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+          <div>
+            <h2 style="font-size: 1.6rem; display: flex; align-items: center; gap: 10px;">
+              <span>🍽️</span> Food Menu & Live Delicacies
+            </h2>
+            <p style="font-size: 0.88rem; color: var(--text-secondary);">Browse dishes across all counters, check live servings & add straight to your tray</p>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;" id="direct-diet-filters">
+            <button class="btn btn-sm btn-primary direct-diet-btn" data-diet="all">All Dishes</button>
+            <button class="btn btn-sm btn-secondary direct-diet-btn" data-diet="veg" style="border-color: #10B981;">🟢 Veg Only</button>
+            <button class="btn btn-sm btn-secondary direct-diet-btn" data-diet="non-veg" style="border-color: #EF4444;">🔴 Non-Veg</button>
+          </div>
+        </div>
+
+        <div class="menu-items-grid" id="direct-menu-items-grid">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
     </div>
   `;
 
-  // Render stall cards
+  let directDietFilter = 'all';
+
+  // Render stall cards & direct food menu items
   function updateStallGrid() {
     const grid = document.getElementById('stalls-grid-container');
+    const directMenuGrid = document.getElementById('direct-menu-items-grid');
     if (!grid) return;
     const filtered = getFilteredShops();
 
@@ -220,6 +257,13 @@ export function renderStudentPortal(container, showToast, renderApp) {
           <button class="btn btn-secondary btn-sm" id="btn-reset-filters">Reset Filters</button>
         </div>
       `;
+      if (directMenuGrid) {
+        directMenuGrid.innerHTML = `
+          <div class="glass-panel" style="padding: 30px; text-align: center; grid-column: 1 / -1; color: var(--text-secondary);">
+            No food menu items matched "${searchQuery}".
+          </div>
+        `;
+      }
       const resetBtn = document.getElementById('btn-reset-filters');
       if (resetBtn) {
         resetBtn.addEventListener('click', () => {
@@ -236,6 +280,7 @@ export function renderStudentPortal(container, showToast, renderApp) {
     }
 
     grid.innerHTML = filtered.map(shop => {
+      const menuItems = shop.menu || [];
       return `
         <div class="stall-card" data-shop-id="${shop.id}">
           <div class="stall-card-banner">
@@ -259,13 +304,22 @@ export function renderStudentPortal(container, showToast, renderApp) {
             <p class="stall-tagline">${shop.tagline}</p>
 
             <div style="margin-bottom: 16px;">
-              <div style="font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">Featured Delicacies:</div>
+              <div style="font-size: 0.78rem; color: var(--primary-gold); font-weight: 700; text-transform: uppercase; margin-bottom: 8px; display: flex; justify-content: space-between;">
+                <span>📋 Menu Highlights (${menuItems.length} Delicacies):</span>
+                <span>📦 Parcel Extra</span>
+              </div>
               <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                ${(shop.menu || []).slice(0, 3).map(m => `
-                  <span style="font-size: 0.75rem; background: rgba(255,255,255,0.06); padding: 3px 8px; border-radius: 4px; color: var(--text-secondary);">
-                    ${m.name.split(' ')[0]} ${m.name.split(' ')[1] || ''} • ₹${m.price}
+                ${menuItems.slice(0, 4).map(m => `
+                  <span style="font-size: 0.75rem; background: rgba(255,255,255,0.07); border: 1px solid var(--border-glass); padding: 4px 8px; border-radius: 6px; color: var(--text-main); display: inline-flex; align-items: center; gap: 4px;">
+                    <span class="diet-indicator ${m.isVeg ? 'veg' : 'non-veg'}" style="width: 8px; height: 8px; border-width: 1px;"></span>
+                    ${m.name} • <strong style="color: var(--primary-gold);">₹${m.price}</strong>
                   </span>
                 `).join('')}
+                ${menuItems.length > 4 ? `
+                  <span style="font-size: 0.75rem; background: rgba(255, 159, 28, 0.15); color: var(--primary-gold); font-weight: 700; padding: 4px 8px; border-radius: 6px;">
+                    +${menuItems.length - 4} more
+                  </span>
+                ` : ''}
               </div>
             </div>
 
@@ -277,8 +331,8 @@ export function renderStudentPortal(container, showToast, renderApp) {
                 <span>⏱️</span> ${shop.prepTime || '10-15 mins'}
               </div>
               <div class="stall-meta-item" style="margin-left: auto;">
-                <button class="btn btn-outline-gold btn-sm btn-view-menu" data-shop-id="${shop.id}">
-                  View Menu →
+                <button class="btn btn-primary btn-sm btn-view-menu" data-shop-id="${shop.id}" style="font-weight: 700;">
+                  <span>📖</span> View Menu (${menuItems.length}) →
                 </button>
               </div>
             </div>
@@ -287,14 +341,131 @@ export function renderStudentPortal(container, showToast, renderApp) {
       `;
     }).join('');
 
-    // Bind Stall Card Click to open Menu Modal
+    // Render Direct Food Menu Grid (so all dishes are immediately visible!)
+    if (directMenuGrid) {
+      const allDishes = [];
+      filtered.forEach(s => {
+        (s.menu || []).forEach(m => {
+          allDishes.push({ ...m, shopId: s.id, shopName: s.name, stallNumber: s.stallNumber });
+        });
+      });
+
+      const visibleDishes = allDishes.filter(item => {
+        const matchesSearch = searchQuery === '' ||
+          item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (item.category && item.category.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          (item.shopName && item.shopName.toLowerCase().includes(searchQuery.toLowerCase()));
+        const matchesDiet = directDietFilter === 'all' ||
+          (directDietFilter === 'veg' && item.isVeg) ||
+          (directDietFilter === 'non-veg' && !item.isVeg);
+        return matchesSearch && matchesDiet;
+      });
+
+      if (visibleDishes.length === 0) {
+        directMenuGrid.innerHTML = `
+          <div class="glass-panel" style="padding: 30px; text-align: center; grid-column: 1 / -1; color: var(--text-secondary);">
+            No delicacies found matching filters.
+          </div>
+        `;
+      } else {
+        directMenuGrid.innerHTML = visibleDishes.map(item => {
+          const servings = item.servingsCount !== undefined ? item.servingsCount : 25;
+          const isAvailable = item.isAvailable && servings > 0;
+          let servingsBadge = '';
+          if (!isAvailable || servings <= 0) {
+            servingsBadge = `<span class="badge badge-rose" style="padding: 2px 6px; font-size: 0.68rem;">🔴 Sold Out</span>`;
+          } else if (servings <= 5) {
+            servingsBadge = `<span class="badge badge-gold" style="padding: 2px 6px; font-size: 0.68rem; color: #F59E0B;">🔥 Only ${servings} left!</span>`;
+          } else {
+            servingsBadge = `<span class="badge badge-emerald" style="padding: 2px 6px; font-size: 0.68rem;">🟢 ${servings} left</span>`;
+          }
+
+          return `
+            <div class="menu-item-card">
+              <img src="${item.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300'}" alt="${item.name}" class="menu-item-img" loading="lazy" />
+              <div class="menu-item-details">
+                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+                  <span class="diet-indicator ${item.isVeg ? 'veg' : 'non-veg'}" title="${item.isVeg ? 'Vegetarian' : 'Non-Vegetarian'}"></span>
+                  <span class="menu-item-name">${item.name}</span>
+                </div>
+                <div class="menu-item-price">₹${item.price} <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">(${item.stallNumber})</span></div>
+                <div class="menu-item-tags">
+                  <span style="color: var(--text-secondary);">⏱️ ${item.prepTime || '10m'}</span>
+                  ${servingsBadge}
+                  ${item.badge ? `<span class="badge badge-gold" style="padding: 2px 6px; font-size: 0.68rem;">${item.badge}</span>` : ''}
+                </div>
+              </div>
+
+              <div>
+                ${isAvailable ? `
+                  <button class="btn btn-primary btn-sm btn-direct-add-cart" data-item-id="${item.id}" data-shop-id="${item.shopId}">
+                    + Add
+                  </button>
+                ` : `
+                  <button class="btn btn-secondary btn-sm" disabled style="opacity: 0.5; cursor: not-allowed;">
+                    Sold Out
+                  </button>
+                `}
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        // Bind Direct Add to Cart buttons
+        directMenuGrid.querySelectorAll('.btn-direct-add-cart').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const itemId = btn.dataset.itemId;
+            const shopId = btn.dataset.shopId;
+            const freshShop = state.getShopById(shopId);
+            if (!freshShop) return;
+            const targetItem = (freshShop.menu || []).find(m => m.id === itemId);
+            if (targetItem) {
+              const result = state.addToCart(targetItem, freshShop);
+              if (!result.success) {
+                showToast(result.message, 'warning');
+              } else {
+                showToast(`Added "${targetItem.name}" to tray! (${result.remaining} left)`, 'success');
+                updateCartBadge();
+                updateStallGrid();
+              }
+            }
+          });
+        });
+      }
+    }
+
+    // Bind Stall Card & View Menu Button Clicks to open Menu Modal
     grid.querySelectorAll('.stall-card').forEach(card => {
       card.addEventListener('click', (e) => {
         const shopId = card.dataset.shopId;
         openStallMenuModal(shopId);
       });
     });
+
+    grid.querySelectorAll('.btn-view-menu').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const shopId = btn.dataset.shopId;
+        openStallMenuModal(shopId);
+      });
+    });
   }
+
+  // Diet filter buttons for direct food menu
+  const directDietBtns = container.querySelectorAll('.direct-diet-btn');
+  directDietBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      directDietBtns.forEach(b => {
+        b.classList.remove('btn-primary');
+        b.classList.add('btn-secondary');
+      });
+      btn.classList.remove('btn-secondary');
+      btn.classList.add('btn-primary');
+      directDietFilter = btn.dataset.diet;
+      updateStallGrid();
+    });
+  });
 
   // Setup Event Listeners
   const searchInput = document.getElementById('stall-search-input');
@@ -542,7 +713,22 @@ export function renderStudentPortal(container, showToast, renderApp) {
     }
 
     renderModalBody();
+    modal.style.display = 'flex';
+    modal.style.visibility = 'visible';
     modal.classList.add('open');
+    document.body.classList.add('modal-open');
+
+    // Ensure modal close button explicitly resets inline styles
+    const closeBtn = modal.querySelector('.modal-close-btn');
+    if (closeBtn) {
+      closeBtn.onclick = (e) => {
+        e.stopPropagation();
+        modal.classList.remove('open');
+        modal.style.display = '';
+        modal.style.visibility = '';
+        document.body.classList.remove('modal-open');
+      };
+    }
   };
 
   // Bind View Bill & QR Code buttons on token cards
@@ -557,13 +743,30 @@ export function renderStudentPortal(container, showToast, renderApp) {
     });
   });
 
-  // Live auto-refresh when shop menu, orders, or statuses are updated
-  state.subscribe((event) => {
+  // Bind manual sync buttons
+  const syncBtn = container.querySelector('#btn-sync-student-orders');
+  const syncEmptyBtn = container.querySelector('#btn-sync-empty-state');
+  const triggerSyncAction = () => {
+    if (showToast) showToast('Syncing orders from campus server...', 'info');
+    state.syncBackendOrders();
+  };
+  if (syncBtn) syncBtn.addEventListener('click', triggerSyncAction);
+  if (syncEmptyBtn) syncEmptyBtn.addEventListener('click', triggerSyncAction);
+
+  // Live auto-refresh when shop menu, orders, or statuses are updated (guarded single subscription)
+  if (window._studentPortalUnsubscribe) {
+    try { window._studentPortalUnsubscribe(); } catch (e) {}
+    window._studentPortalUnsubscribe = null;
+  }
+  window._studentPortalUnsubscribe = state.subscribe((event) => {
     if (event === 'SHOPS_UPDATED' || event === 'ORDER_CREATED') {
       updateStallGrid();
     }
-    if (event === 'ORDERS_UPDATED' || event === 'ORDER_STATUS_CHANGED') {
-      if (renderApp) renderApp();
+    if (event === 'ORDER_STATUS_CHANGED') {
+      const activeModal = document.querySelector('.modal-overlay.open');
+      if (!activeModal && renderApp) {
+        renderApp();
+      }
     }
   });
 

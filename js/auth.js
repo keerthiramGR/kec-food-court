@@ -1,4 +1,4 @@
-import { state } from './state.js';
+import { state, getApiBaseUrl } from './state.js';
 import { DEFAULT_USERS } from './data.js';
 
 export function initAuth(showToast, renderApp) {
@@ -128,17 +128,37 @@ export function initAuth(showToast, renderApp) {
 
       state.login(studentUser);
 
-      // Store and synchronize student login with Supabase
+      // Claim any local guest orders on this device for this student account
       try {
-        fetch('/api/auth/student-login', {
+        const guestOrderIds = JSON.parse(localStorage.getItem('kec_guest_order_ids') || '[]');
+        if (guestOrderIds.length > 0) {
+          guestOrderIds.forEach(orderId => {
+            fetch(`${getApiBaseUrl()}/api/orders/${orderId}/claim`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                studentRoll: rollNo,
+                studentName: name,
+                studentPhone: mobile
+              })
+            }).catch(() => {});
+          });
+          localStorage.removeItem('kec_guest_order_ids');
+        }
+      } catch (e) {}
+
+      // Store and synchronize student profile with backend & persistent disk
+      try {
+        fetch(`${getApiBaseUrl()}/api/auth/student-login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(studentUser)
         }).then(r => r.json()).then(res => {
           if (res && res.success) {
-            console.log('✅ Student profile recorded in Supabase:', res.student);
+            console.log('✅ Student profile recorded on server:', res.student);
+            state.syncBackendOrders();
           }
-        }).catch(e => console.warn('Supabase student sync notice:', e));
+        }).catch(e => console.warn('Student login sync notice:', e));
       } catch (err) {}
 
       window.hideLoginGateway();

@@ -1,0 +1,47 @@
+[
+  {
+    "id": "std_25CSR131",
+    "name": "YUTHISTAN",
+    "rollNo": "25CSR131",
+    "mobile": "9876543210",
+    "department": "Computer Science & Engineering",
+    "year": "Active Student",
+    "walletBalance": 850,
+    "avatar": "🎓",
+    "totalOrders": 2,
+    "totalSpent": 74,
+    "lastLogin": "2026-10-28T05:28:00.866Z",
+    "lastOrderTime": "2026-10-28T05:28:33.454Z",
+    "createdAt": "2026-10-28T05:28:00.866Z"
+  },
+  {
+    "id": "std_12",
+    "name": "mohan",
+    "rollNo": "12",
+    "mobile": "1234567890",
+    "department": "Campus Diner",
+    "year": "Active Student",
+    "walletBalance": 850,
+    "avatar": "🎓",
+    "totalOrders": 10,
+    "totalSpent": 190,
+    "lastLogin": "2026-10-27T19:40:40.298Z",
+    "createdAt": "2026-10-27T19:40:40.298Z",
+    "lastOrderTime": "2026-10-27T19:40:41.569Z"
+  },
+  {
+    "id": "std_25CSR134",
+    "name": "KEERTHIRAM G R",
+    "rollNo": "25CSR134",
+    "mobile": "9876543210",
+    "department": "Computer Science & Engineering",
+    "year": "Active Student",
+    "walletBalance": 850,
+    "avatar": "🎓",
+    "totalOrders": 3,
+    "totalSpent": 162,
+    "lastLogin": "2026-10-28T05:32:40.098Z",
+    "createdAt": "2026-10-27T19:13:56.781Z",
+    "lastOrderTime": "2026-10-27T19:32:41.582Z"
+  }
+]

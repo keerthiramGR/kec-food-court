@@ -2,9 +2,17 @@
 <html lang="en" class="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0A0E17" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="description" content="KEC FOOD COURT - Smart Campus Dining & Outlets Portal for Kongu Engineering College. Real-time food ordering, stall management, and digital token tracking." />
   <title>KEC FOOD COURT | Smart Campus Dining & Stalls</title>
+
+  <!-- PWA Manifest & Icons -->
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="assets/logo.svg" />
 
   <!-- Immediate Theme Initializer (Prevents Flash of Unstyled Content) -->
   <script>
@@ -58,7 +66,7 @@
   <!-- Favicon using Logo SVG -->
   <link rel="icon" type="image/svg+xml" href="assets/logo.svg" />
 </head>
-<body class="splash-active">
+<body>
 
   <!-- =========================================================================
        1. CINEMATIC 3-4s LOGO SPLASH SCREEN
@@ -493,5 +501,16 @@
 
   <!-- Main Application Script (ES Module) -->
   <script type="module" src="js/app.js"></script>
+
+  <!-- PWA Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('📱 KEC App Service Worker active:', reg.scope))
+          .catch(err => console.log('SW registration note:', err));
+      });
+    }
+  </script>
 </body>
 </html>
