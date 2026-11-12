@@ -237,7 +237,7 @@ function initCartModal() {
             shopId: firstItem.shopId,
             shopName: firstItem.shopName,
             stallNumber: firstItem.stallNumber,
-            items: cart.map(c => ({ id: c.id, name: c.name, qty: c.qty, price: c.price })),
+            items: cart.map(c => ({ id: c.id, name: c.name, qty: c.qty, price: c.price, image: c.image, isVeg: c.isVeg })),
             totalAmount: total,
             diningType: diningType
           };

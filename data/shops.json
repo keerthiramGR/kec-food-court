@@ -27,7 +27,7 @@
         "category": "Parotta & Roti",
         "prepTime": "3m",
         "isAvailable": true,
-        "servingsCount": 9
+        "servingsCount": 5
       },
       {
         "id": "f-2",
@@ -73,7 +73,7 @@
         "category": "Parotta & Roti",
         "prepTime": "8m",
         "isAvailable": true,
-        "servingsCount": 22
+        "servingsCount": 20
       },
       {
         "id": "f-6",
@@ -131,7 +131,7 @@
         "category": "Dosa & Roast",
         "prepTime": "6m",
         "isAvailable": true,
-        "servingsCount": 24
+        "servingsCount": 23
       },
       {
         "id": "f-11",
@@ -184,7 +184,8 @@
         "price": 35,
         "category": "Dosa & Roast",
         "prepTime": "5m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 24
       },
       {
         "id": "f-16",
@@ -277,7 +278,8 @@
         "price": 65,
         "category": "Fried Rice",
         "prepTime": "8m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 23
       },
       {
         "id": "f-25",
@@ -448,7 +450,7 @@
         "category": "Chicken Gravy",
         "prepTime": "12m",
         "isAvailable": true,
-        "servingsCount": 23
+        "servingsCount": 22
       },
       {
         "id": "f-41",
@@ -536,7 +538,8 @@
         "price": 100,
         "category": "Chicken Dry",
         "prepTime": "10m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 24
       },
       {
         "id": "f-49",

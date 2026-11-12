@@ -309,9 +309,9 @@ export async function openOrderBillModal(order) {
           <span class="bill-grand-price">₹${order.totalAmount}</span>
         </div>
         <div class="bill-payment-status">
-          <span class="payment-check-badge">✅ PAID ONLINE</span>
+          <span class="payment-check-badge">${(order.paymentMethod || '').toLowerCase().includes('cash') ? '💵 PAID IN CASH (COUNTER)' : '✅ PAID ONLINE'}</span>
           <span style="font-size: 0.82rem; color: var(--text-secondary);">
-            Payment Method: Campus UPI / Student Wallet
+            Payment Method: ${escapeHtml(order.paymentMethod || 'Campus UPI / Student Wallet')}
           </span>
         </div>
       </div>

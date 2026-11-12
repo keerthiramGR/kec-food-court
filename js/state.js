@@ -565,10 +565,24 @@ class FoodCourtState {
 
   createOrder(orderData) {
     const orders = this.getOrders();
-    const tokenSeq = Math.floor(10 + Math.random() * 90);
+    const todayStart = new Date().setHours(0, 0, 0, 0);
+    const todayOrders = orders.filter(o => {
+      const t = o.createdTime || (o.created_at ? new Date(o.created_at).getTime() : 0);
+      return t >= todayStart;
+    });
+    let maxToken = 0;
+    todayOrders.forEach(o => {
+      const match = String(o.tokenNumber || '').match(/TK-(\d+)/i);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (num > maxToken) maxToken = num;
+      }
+    });
+    const assignedToken = orderData.tokenNumber || `TK-${String(maxToken + 1).padStart(2, '0')}`;
+
     const newOrder = {
       id: `KEC-${Math.floor(1000 + Math.random() * 9000)}`,
-      tokenNumber: `TK-${tokenSeq}`,
+      tokenNumber: assignedToken,
       status: "Placed",
       createdTime: Date.now(),
       timestamp: "Just now",

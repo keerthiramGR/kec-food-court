@@ -1,5 +1,20 @@
 [
   {
+    "id": "std_CASH",
+    "name": "Walk-in Cash Customer",
+    "rollNo": "CASH",
+    "mobile": "",
+    "department": "Computer Science & Engineering",
+    "year": "Active Student",
+    "walletBalance": 850,
+    "avatar": "🎓",
+    "totalOrders": 5,
+    "totalSpent": 541,
+    "lastLogin": "2026-11-12T17:20:25.361Z",
+    "lastOrderTime": "2026-11-12T18:01:45.894Z",
+    "createdAt": "2026-11-12T17:20:25.361Z"
+  },
+  {
     "id": "std_11",
     "name": "keerthana",
     "rollNo": "11",
@@ -158,10 +173,10 @@
     "year": "Active Student",
     "walletBalance": 850,
     "avatar": "🎓",
-    "totalOrders": 30,
-    "totalSpent": 2168,
-    "lastLogin": "2026-10-28T06:06:42.215Z",
+    "totalOrders": 32,
+    "totalSpent": 2224,
+    "lastLogin": "2026-11-12T18:11:52.686Z",
     "createdAt": "2026-10-27T19:13:56.781Z",
-    "lastOrderTime": "2026-11-12T16:21:49.344Z"
+    "lastOrderTime": "2026-11-12T18:03:54.187Z"
   }
 ]

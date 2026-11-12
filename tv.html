@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KEC Food Court • Live Queue Token Board</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=JetBrains+Mono:wght@700;800;900&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+  <style>
+    :root {
+      --bg-tv: #0A0E17;
+      --bg-panel: #111827;
+      --border-panel: rgba(255, 255, 255, 0.1);
+      --green-ready: #10B981;
+      --green-ready-dark: #059669;
+      --red-prep: #EF4444;
+      --red-prep-dark: #DC2626;
+      --gold-accent: #FF9F1C;
+      --text-white: #FFFFFF;
+      --text-muted: #94A3B8;
+      --card-bg-sub: #1E293B;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-tv);
+      color: var(--text-white);
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Top TV Bar */
+    .tv-header {
+      background: rgba(17, 24, 39, 0.95);
+      border-bottom: 2px solid rgba(255, 255, 255, 0.08);
+      padding: 14px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+    }
+
+    .tv-brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .tv-logo {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #FF9F1C 0%, #FF5722 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      box-shadow: 0 0 16px rgba(255, 159, 28, 0.35);
+    }
+
+    .tv-title {
+      font-size: 1.5rem;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      color: #FFF;
+      line-height: 1.1;
+    }
+
+    .tv-subtitle {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .tv-legend {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 6px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border-panel);
+    }
+
+    .legend-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 14px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .legend-ready {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34D399;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+
+    .legend-prep {
+      background: rgba(239, 68, 68, 0.2);
+      color: #F87171;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+
+    .tv-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .tv-clock {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--gold-accent);
+      background: rgba(0, 0, 0, 0.35);
+      padding: 6px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border-panel);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tv-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border-panel);
+      color: #FFF;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .tv-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .tv-btn.active {
+      background: var(--gold-accent);
+      color: #0A0E17;
+      border-color: var(--gold-accent);
+    }
+
+    /* Main Split Dashboard */
+    .tv-container {
+      flex: 1;
+      padding: 24px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      height: calc(100vh - 80px);
+      overflow: hidden;
+    }
+
+    @media (max-width: 900px) {
+      .tv-container {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+    }
+
+    .tv-column {
+      background: var(--bg-panel);
+      border-radius: 18px;
+      border: 2px solid var(--border-panel);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+    }
+
+    .tv-column.col-ready {
+      border-color: rgba(16, 185, 129, 0.4);
+      background: linear-gradient(180deg, rgba(16, 185, 129, 0.08) 0%, rgba(17, 24, 39, 0.95) 120px);
+    }
+
+    .tv-column.col-prep {
+      border-color: rgba(239, 68, 68, 0.35);
+      background: linear-gradient(180deg, rgba(239, 68, 68, 0.08) 0%, rgba(17, 24, 39, 0.95) 120px);
+    }
+
+    .column-header {
+      padding: 18px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid var(--border-panel);
+    }
+
+    .col-ready .column-header {
+      background: rgba(16, 185, 129, 0.12);
+      border-bottom-color: rgba(16, 185, 129, 0.3);
+    }
+
+    .col-prep .column-header {
+      background: rgba(239, 68, 68, 0.12);
+      border-bottom-color: rgba(239, 68, 68, 0.3);
+    }
+
+    .col-title {
+      font-size: 1.35rem;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      letter-spacing: 0.5px;
+    }
+
+    .col-ready .col-title {
+      color: #34D399;
+    }
+
+    .col-prep .col-title {
+      color: #F87171;
+    }
+
+    .col-count-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.15rem;
+      font-weight: 900;
+      padding: 4px 14px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.4);
+    }
+
+    .col-ready .col-count-badge {
+      color: #34D399;
+      border: 1.5px solid rgba(16, 185, 129, 0.4);
+    }
+
+    .col-prep .col-count-badge {
+      color: #F87171;
+      border: 1.5px solid rgba(239, 68, 68, 0.4);
+    }
+
+    .tokens-grid {
+      flex: 1;
+      padding: 20px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+      align-content: start;
+      overflow-y: auto;
+    }
+
+    /* QMS Split Token Card (Exactly matching user's photo) */
+    .token-card {
+      display: flex;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 2px solid var(--border-panel);
+      background: var(--card-bg-sub);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      min-height: 98px;
+    }
+
+    .token-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    /* Left Half: Big Token Number */
+    .token-left {
+      flex: 1.35;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #FFF;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 2.2rem;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      position: relative;
+      padding: 8px 6px;
+    }
+
+    .card-ready .token-left {
+      background: linear-gradient(135deg, var(--green-ready) 0%, var(--green-ready-dark) 100%);
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .card-prep .token-left {
+      background: linear-gradient(135deg, var(--red-prep) 0%, var(--red-prep-dark) 100%);
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .token-tag {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      font-weight: 800;
+      background: rgba(0, 0, 0, 0.35);
+      padding: 2px 10px;
+      border-radius: 6px;
+      margin-top: 3px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .token-countdown-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.88rem;
+      font-weight: 900;
+      background: rgba(0, 0, 0, 0.5);
+      color: #FFDE59;
+      padding: 3px 10px;
+      border-radius: 6px;
+      margin-top: 3px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      letter-spacing: 0.5px;
+      border: 1px solid rgba(255, 222, 89, 0.35);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .token-progress-track {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: rgba(0, 0, 0, 0.35);
+    }
+
+    .token-progress-bar {
+      height: 100%;
+      background: #FFDE59;
+      transition: width 1s linear;
+    }
+
+    /* Right Half: Stall Counter / Location */
+    .token-right {
+      flex: 1.1;
+      background: #FFFFFF;
+      color: #0F172A;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 10px;
+      text-align: center;
+      border-left: 2px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .token-stall-num {
+      font-size: 1.55rem;
+      font-weight: 900;
+      font-family: 'Outfit', sans-serif;
+      line-height: 1.1;
+      color: #0F172A;
+    }
+
+    .token-stall-name {
+      font-size: 0.72rem;
+      color: #64748B;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+
+    .token-eta-pill {
+      font-size: 0.72rem;
+      color: #0F172A;
+      background: rgba(15, 23, 42, 0.06);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 800;
+      margin-top: 3px;
+      white-space: nowrap;
+    }
+
+    .token-ready-pill {
+      font-size: 0.74rem;
+      color: #059669;
+      background: rgba(16, 185, 129, 0.12);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 800;
+      margin-top: 3px;
+      white-space: nowrap;
+    }
+
+    .token-order-type {
+      font-size: 0.65rem;
+      background: rgba(15, 23, 42, 0.08);
+      color: #334155;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-weight: 700;
+      margin-top: 3px;
+    }
+
+    /* Pulsing Ready Animation */
+    .card-ready {
+      animation: pulseGreen 2.2s infinite;
+      border-color: rgba(16, 185, 129, 0.8);
+    }
+
+    @keyframes pulseGreen {
+      0%, 100% {
+        box-shadow: 0 0 16px rgba(16, 185, 129, 0.4);
+      }
+      50% {
+        box-shadow: 0 0 28px rgba(16, 185, 129, 0.75);
+      }
+    }
+
+    /* Empty state */
+    .tokens-empty {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    .empty-icon {
+      font-size: 3rem;
+      margin-bottom: 8px;
+      opacity: 0.6;
+    }
+
+    .empty-text {
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .empty-sub {
+      font-size: 0.85rem;
+      margin-top: 4px;
+    }
+
+    /* Live Flash Alert when token flips to ready */
+    .flash-call-banner {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(120px);
+      background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+      color: #FFF;
+      padding: 14px 32px;
+      border-radius: 999px;
+      font-size: 1.4rem;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 10px 40px rgba(16, 185, 129, 0.6);
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 200;
+      pointer-events: none;
+    }
+
+    .flash-call-banner.show {
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TV Top Navigation Bar -->
+  <header class="tv-header">
+    <div class="tv-brand">
+      <div class="tv-logo">🍛</div>
+      <div>
+        <div class="tv-title">KEC FOOD COURT</div>
+        <div class="tv-subtitle">Live Kitchen Token Display System</div>
+      </div>
+    </div>
+
+    <!-- Status Legend -->
+    <div class="tv-legend">
+      <div class="legend-badge legend-ready">
+        <span>🟢</span> Ready for Pickup
+      </div>
+      <div class="legend-badge legend-prep">
+        <span>🔴</span> Kitchen Cooking
+      </div>
+    </div>
+
+    <!-- Control Actions -->
+    <div class="tv-actions">
+      <!-- Stall Filter Dropdown -->
+      <select id="tv-stall-filter" class="tv-btn" style="background: rgba(0,0,0,0.4); padding: 8px 12px;">
+        <option value="all">🏢 All Stalls</option>
+        <option value="shop-1">Stall #01 - Food</option>
+        <option value="shop-2">Stall #02 - Juice</option>
+      </select>
+
+      <div class="tv-clock" id="tv-clock">10:45:00 AM</div>
+
+      <!-- Audio Bell Toggle -->
+      <button class="tv-btn active" id="btn-toggle-sound" title="Toggle chime when food is ready">
+        <span id="sound-icon">🔔</span> Sound ON
+      </button>
+
+      <!-- Fullscreen Toggle Button -->
+      <button class="tv-btn" id="btn-toggle-fullscreen" title="Toggle Fullscreen TV Mode">
+        <span>⛶</span> Fullscreen
+      </button>
+
+      <!-- Back to Main Site -->
+      <a href="index.html" class="tv-btn" title="Return to KEC Food Court Portal">
+        <span>🏠</span> Main Site
+      </a>
+    </div>
+  </header>
+
+  <!-- Split Dashboard Container -->
+  <main class="tv-container">
+    <!-- Left Column: Ready for Pickup (GREEN) -->
+    <section class="tv-column col-ready">
+      <div class="column-header">
+        <div class="col-title">
+          <span>🔔</span> READY FOR PICKUP
+        </div>
+        <div class="col-count-badge" id="count-ready">0 READY</div>
+      </div>
+      <div class="tokens-grid" id="grid-ready">
+        <!-- Rendered by JS -->
+      </div>
+    </section>
+
+    <!-- Right Column: Preparing in Kitchen (RED) -->
+    <section class="tv-column col-prep">
+      <div class="column-header">
+        <div class="col-title">
+          <span>🔥</span> PREPARING IN KITCHEN
+        </div>
+        <div class="col-count-badge" id="count-prep">0 COOKING</div>
+      </div>
+      <div class="tokens-grid" id="grid-prep">
+        <!-- Rendered by JS -->
+      </div>
+    </section>
+  </main>
+
+  <!-- Live Calling Popup Banner -->
+  <div class="flash-call-banner" id="flash-banner">
+    <span>🔔</span> NOW CALLING: <strong id="flash-token">TK-00</strong> AT <span id="flash-stall">STALL #01</span>
+  </div>
+
+  <script type="module">
+    import { state } from './js/state.js';
+    import { calculateOrderEstimatedPrep } from './js/countdown.js';
+
+    let soundEnabled = true;
+    let selectedStall = 'all';
+    const knownReadyIds = new Set();
+    let initialLoadDone = false;
+
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // 1. Clock
+    function updateClock() {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+      document.getElementById('tv-clock').textContent = timeStr;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // 2. Audio Chime Synthesizer
+    function playCallingChime() {
+      if (!soundEnabled) return;
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6 triumphant chime
+        notes.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.14);
+          gain.gain.setValueAtTime(0.4, ctx.currentTime + idx * 0.14);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.14 + 0.8);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(ctx.currentTime + idx * 0.14);
+          osc.stop(ctx.currentTime + idx * 0.14 + 0.85);
+        });
+      } catch (e) {
+        console.warn('Audio notice:', e);
+      }
+    }
+
+    // 3. Fullscreen Controller
+    const fsBtn = document.getElementById('btn-toggle-fullscreen');
+    fsBtn.addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+        fsBtn.innerHTML = '<span>✕</span> Exit Fullscreen';
+      } else {
+        document.exitFullscreen().catch(() => {});
+        fsBtn.innerHTML = '<span>⛶</span> Fullscreen';
+      }
+    });
+
+    document.addEventListener('fullscreenchange', () => {
+      if (!document.fullscreenElement) {
+        fsBtn.innerHTML = '<span>⛶</span> Fullscreen';
+      } else {
+        fsBtn.innerHTML = '<span>✕</span> Exit Fullscreen';
+      }
+    });
+
+    // 4. Sound Toggle
+    const soundBtn = document.getElementById('btn-toggle-sound');
+    soundBtn.addEventListener('click', () => {
+      soundEnabled = !soundEnabled;
+      soundBtn.classList.toggle('active', soundEnabled);
+      soundBtn.innerHTML = `<span id="sound-icon">${soundEnabled ? '🔔' : '🔕'}</span> Sound ${soundEnabled ? 'ON' : 'OFF'}`;
+      if (soundEnabled) playCallingChime();
+    });
+
+    // 5. Stall Filter
+    const stallFilter = document.getElementById('tv-stall-filter');
+    stallFilter.addEventListener('change', (e) => {
+      selectedStall = e.target.value;
+      renderTvBoard();
+    });
+
+    // 6. Flash Call Banner
+    function triggerCallBanner(tokenNumber, stallNumber) {
+      const banner = document.getElementById('flash-banner');
+      document.getElementById('flash-token').textContent = tokenNumber;
+      document.getElementById('flash-stall').textContent = (stallNumber || 'STALL #01').toUpperCase();
+      banner.classList.add('show');
+      setTimeout(() => banner.classList.remove('show'), 6000);
+    }
+
+    // Helper: Identify Offline / Walk-in Counter Cash Orders ONLY
+    function isOfflineOrder(o) {
+      if (!o) return false;
+      const method = (o.paymentMethod || '').toLowerCase();
+      const txn = (o.transactionId || '').toUpperCase();
+      const roll = (o.studentRoll || '').toUpperCase();
+      return method.includes('cash') || txn.startsWith('CASH') || roll === 'CASH' || o.isOffline === true;
+    }
+
+    // 7. Render Board (Shows ONLY Offline / Counter Orders)
+    function renderTvBoard() {
+      const allOrders = state.getOrders();
+      const allShops = state.getShops();
+      const todayStart = new Date().setHours(0, 0, 0, 0);
+
+      // Auto-transition orders whose timer already completed
+      // (Keeps full kitchen queue synchronized with both online + offline)
+      allOrders.forEach(o => {
+        if (o.status === 'Kitchen Preparing' || o.status === 'Placed') {
+          const calc = calculateOrderEstimatedPrep(o, allOrders, allShops);
+          if (calc.remainingSeconds <= 0) {
+            o.status = 'Ready at Counter';
+            state.updateOrderStatus(o.id, 'Ready at Counter');
+          }
+        }
+      });
+
+      // ONLY select today's OFFLINE / Counter Cash orders for the TV Screen
+      const orders = allOrders.filter(o => {
+        const t = o.createdTime || (o.created_at ? new Date(o.created_at).getTime() : 0);
+        const isToday = t >= todayStart;
+        const matchStall = selectedStall === 'all' || o.shopId === selectedStall;
+        return isToday && matchStall && isOfflineOrder(o) && o.status !== 'Cancelled';
+      });
+
+      const readyOrders = orders.filter(o => o.status === 'Ready at Counter');
+      const prepOrders = orders.filter(o => o.status === 'Kitchen Preparing' || o.status === 'Placed');
+
+      // Check for newly ready orders to trigger chime & banner
+      if (initialLoadDone) {
+        readyOrders.forEach(o => {
+          if (!knownReadyIds.has(o.id)) {
+            knownReadyIds.add(o.id);
+            playCallingChime();
+            triggerCallBanner(o.tokenNumber, o.stallNumber);
+          }
+        });
+      } else {
+        readyOrders.forEach(o => knownReadyIds.add(o.id));
+        initialLoadDone = true;
+      }
+
+      // Update Counts
+      document.getElementById('count-ready').textContent = `${readyOrders.length} READY`;
+      document.getElementById('count-prep').textContent = `${prepOrders.length} COOKING`;
+
+      // Render Ready Column (GREEN)
+      const gridReady = document.getElementById('grid-ready');
+      if (readyOrders.length === 0) {
+        gridReady.innerHTML = `
+          <div class="tokens-empty">
+            <div class="empty-icon">🔔</div>
+            <div class="empty-text">No Tokens Ready Right Now</div>
+            <div class="empty-sub">Fresh orders being prepared in kitchen</div>
+          </div>
+        `;
+      } else {
+        gridReady.innerHTML = readyOrders.map(o => {
+          const isCash = (o.paymentMethod || '').toLowerCase().includes('cash');
+          const cleanStall = (o.stallNumber || 'Stall #01').replace('Stall #', 'STALL ');
+          return `
+            <div class="token-card card-ready" id="card-${o.id}">
+              <div class="token-left">
+                <span>${o.tokenNumber}</span>
+                <span class="token-tag">🔔 READY NOW</span>
+              </div>
+              <div class="token-right">
+                <div class="token-stall-num">${cleanStall}</div>
+                <div class="token-stall-name">${escapeHtml(o.shopName || 'Food Stall')}</div>
+                <div class="token-ready-pill">✅ Ready for Pickup</div>
+                <div class="token-order-type">💵 Counter Order</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // Render Preparing Column (RED) with live countdown timer
+      const gridPrep = document.getElementById('grid-prep');
+      if (prepOrders.length === 0) {
+        gridPrep.innerHTML = `
+          <div class="tokens-empty">
+            <div class="empty-icon">👨‍🍳</div>
+            <div class="empty-text">Kitchen Queue Clear</div>
+            <div class="empty-sub">Ready to prepare next incoming orders</div>
+          </div>
+        `;
+      } else {
+        gridPrep.innerHTML = prepOrders.map(o => {
+          const cleanStall = (o.stallNumber || 'Stall #01').replace('Stall #', 'STALL ');
+          const calc = calculateOrderEstimatedPrep(o, allOrders, allShops);
+
+          return `
+            <div class="token-card card-prep" id="card-${o.id}">
+              <div class="token-left">
+                <span>${o.tokenNumber}</span>
+                <span class="token-countdown-tag" id="timer-${o.id}">
+                  ⏱️ ${calc.formattedMMSS} left
+                </span>
+                <div class="token-progress-track">
+                  <div class="token-progress-bar" id="bar-${o.id}" style="width: ${calc.progressPercent}%;"></div>
+                </div>
+              </div>
+              <div class="token-right">
+                <div class="token-stall-num">${cleanStall}</div>
+                <div class="token-stall-name">${escapeHtml(o.shopName || 'Food Stall')}</div>
+                <div class="token-eta-pill">Ready by ~${calc.formattedTargetTime}</div>
+                <div class="token-order-type">💵 Counter Order</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    // Fast 1s loop: updates countdown timers smoothly and triggers auto-ready at 00:00
+    function tickCountdowns() {
+      const allOrders = state.getOrders();
+      const allShops = state.getShops();
+      const todayStart = new Date().setHours(0, 0, 0, 0);
+
+      const prepOrders = allOrders.filter(o => {
+        const t = o.createdTime || (o.created_at ? new Date(o.created_at).getTime() : 0);
+        const isToday = t >= todayStart;
+        const matchStall = selectedStall === 'all' || o.shopId === selectedStall;
+        return isToday && matchStall && isOfflineOrder(o) && (o.status === 'Kitchen Preparing' || o.status === 'Placed');
+      });
+
+      let needsReRender = false;
+
+      prepOrders.forEach(o => {
+        const calc = calculateOrderEstimatedPrep(o, allOrders, allShops);
+        if (calc.remainingSeconds <= 0) {
+          // Timer finished! Transition to Ready for Pickup!
+          state.updateOrderStatus(o.id, 'Ready at Counter');
+          needsReRender = true;
+        } else {
+          const timerEl = document.getElementById(`timer-${o.id}`);
+          const barEl = document.getElementById(`bar-${o.id}`);
+          if (timerEl) {
+            timerEl.textContent = `⏱️ ${calc.formattedMMSS} left`;
+          }
+          if (barEl) {
+            barEl.style.width = `${calc.progressPercent}%`;
+          }
+        }
+      });
+
+      if (needsReRender) {
+        renderTvBoard();
+      }
+    }
+
+    setInterval(tickCountdowns, 1000);
+
+    // Initial Load & Subscriptions
+    renderTvBoard();
+    state.subscribe('ORDER_CREATED', renderTvBoard);
+    state.subscribe('ORDER_UPDATED', renderTvBoard);
+    state.subscribe('ORDERS_UPDATED', renderTvBoard);
+    state.subscribe('NEW_DAY_STARTED', () => {
+      knownReadyIds.clear();
+      renderTvBoard();
+    });
+
+    // Auto-poll sync every 2.5s for multi-device sync
+    setInterval(async () => {
+      try {
+        await state.syncOrders();
+        renderTvBoard();
+      } catch (e) {}
+    }, 2500);
+  </script>
+</body>
+</html>
+

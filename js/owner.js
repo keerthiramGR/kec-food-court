@@ -13,6 +13,11 @@ let purchaseStatusFilter = 'all';
 let purchaseHistoryTab = 'today';
 let cachedArchivedOrders = null;
 
+let posCart = [];
+let posSearchQuery = '';
+let posActiveCategory = 'all';
+let posDiningType = 'Dine-In';
+
 function escapeHtml(str) {
   if (str === null || str === undefined) return '';
   return String(str)
@@ -219,6 +224,407 @@ export function showIncomingOrderPopup(order, showToast, renderApp, isAutoAccept
 }
 
 // ---------------------------------------------------------------------------
+// 2b. Counter POS Billing / Walk-in Cash Order Modal
+// ---------------------------------------------------------------------------
+export function closeCounterPosModal() {
+  const modal = document.getElementById('counter-pos-modal');
+  if (modal) {
+    modal.classList.remove('open');
+  }
+}
+
+export function openCounterPosModal(currentShop, showToast, renderApp) {
+  const modal = document.getElementById('counter-pos-modal');
+  const body = document.getElementById('counter-pos-body');
+  if (!modal || !body) return;
+
+  posCart = [];
+  posSearchQuery = '';
+  posActiveCategory = 'all';
+  posDiningType = 'Dine-In';
+
+  function renderPosInterface() {
+    const dishes = currentShop.menu || [];
+    const categories = ['all', ...Array.from(new Set(dishes.map(d => d.category).filter(Boolean)))];
+
+    const filteredDishes = dishes.filter(d => {
+      const matchCat = posActiveCategory === 'all' || d.category === posActiveCategory;
+      const matchSearch = !posSearchQuery || (d.name || '').toLowerCase().includes(posSearchQuery);
+      return matchCat && matchSearch;
+    });
+
+    const totalAmount = posCart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+    const totalItems = posCart.reduce((sum, i) => sum + i.qty, 0);
+
+    body.innerHTML = `
+      <div class="pos-layout">
+        <!-- Left Column: Menu Delicacies Grid -->
+        <div>
+          <!-- Search & Category Filters -->
+          <div class="pos-search-bar">
+            <input type="text" id="pos-dish-search-input" class="form-input" placeholder="🔍 Search delicacies (e.g. Parotta, Roast, Rice)..." value="${escapeHtml(posSearchQuery)}" style="background: rgba(255,255,255,0.06); padding: 9px 14px; font-size: 0.9rem;">
+          </div>
+          <div class="pos-categories-wrap">
+            ${categories.map(c => `
+              <button class="pos-cat-pill ${posActiveCategory === c ? 'active' : ''}" data-cat="${c}">
+                ${c === 'all' ? '🍽️ All Dishes' : c}
+              </button>
+            `).join('')}
+          </div>
+
+          <!-- Dishes Grid -->
+          <div class="pos-dish-grid">
+            ${filteredDishes.length === 0 ? `
+              <div style="grid-column: 1 / -1; text-align: center; padding: 40px 10px; color: var(--text-muted);">
+                No delicacies found matching your search.
+              </div>
+            ` : filteredDishes.map(dish => {
+              const servings = dish.servingsCount !== undefined ? dish.servingsCount : 25;
+              const isAvailable = dish.isAvailable && servings > 0;
+              const inCart = posCart.find(i => i.id === dish.id);
+
+              return `
+                <div class="pos-dish-card ${!isAvailable ? 'out-of-stock' : ''}" data-dish-id="${dish.id}">
+                  <img src="${dish.image || 'assets/menu/f-1.jpg'}" 
+                       alt="${escapeHtml(dish.name)}" 
+                       class="pos-dish-img" 
+                       onerror="this.src='assets/menu/f-1.jpg'"
+                       loading="lazy" />
+                  
+                  <div style="flex: 1; min-width: 0;">
+                    <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+                      <span class="diet-indicator ${dish.isVeg ? 'veg' : 'non-veg'}" style="width: 10px; height: 10px; flex-shrink: 0;" title="${dish.isVeg ? 'Vegetarian' : 'Non-Vegetarian'}"></span>
+                      <span style="font-weight: 800; font-size: 1.05rem; color: #FFFFFF !important; line-height: 1.25; word-break: break-word;">
+                        ${escapeHtml(dish.name)}
+                      </span>
+                    </div>
+
+                    <div style="display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px;">
+                      <span class="dish-price" style="color: #FFB703 !important; font-weight: 800;">₹${dish.price}</span>
+                      <span style="font-size: 0.78rem; color: #CBD5E1; font-weight: 700;">⏱️ ${dish.prepTime || '5m'}</span>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                      <span class="dish-stock-tag" style="background: rgba(255,255,255,0.12); color: #CBD5E1; font-weight: 800; ${servings <= 5 ? 'color:#FF6B6B !important; background:rgba(239,68,68,0.25) !important;' : ''}">
+                        ${isAvailable ? `🟢 ${servings} left` : '🔴 Sold Out'}
+                      </span>
+                      ${dish.badge ? `<span class="badge badge-gold" style="padding: 1px 5px; font-size: 0.65rem;">${dish.badge}</span>` : ''}
+                    </div>
+                  </div>
+
+                  <div style="flex-shrink: 0;">
+                    ${!isAvailable ? `
+                      <span class="badge badge-rose" style="font-size: 0.72rem; font-weight: 700;">Sold Out</span>
+                    ` : inCart ? `
+                      <span class="badge badge-emerald" style="font-size: 0.78rem; padding: 5px 9px; font-weight: 900;">
+                        ${inCart.qty} in tray
+                      </span>
+                    ` : `
+                      <button class="btn btn-xs btn-primary btn-add-pos-dish" data-dish-id="${dish.id}" style="padding: 5px 12px; font-weight: 800;">
+                        + Add
+                      </button>
+                    `}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+        <!-- Right Column: Live Bill Receipt & Punch Order -->
+        <div class="pos-cart-panel">
+          <!-- Customer Details Inputs -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <label style="font-size: 0.76rem; color: #CBD5E1; font-weight: 800; margin-bottom: 4px; display: block; letter-spacing: 0.5px;">CUSTOMER NAME</label>
+              <input type="text" id="pos-customer-name" class="form-input" value="Walk-in Cash Customer" placeholder="Name / Walk-in" style="background: #0A0E17 !important; color: #FFFFFF !important; border: 1.5px solid rgba(255,255,255,0.18) !important; font-size: 0.88rem; font-weight: 700; padding: 7px 10px;">
+            </div>
+            <div>
+              <label style="font-size: 0.76rem; color: #CBD5E1; font-weight: 800; margin-bottom: 4px; display: block; letter-spacing: 0.5px;">ROLL / ID (OPTIONAL)</label>
+              <input type="text" id="pos-customer-roll" class="form-input" value="CASH" placeholder="e.g. 23CSR042 / CASH" style="background: #0A0E17 !important; color: #FFFFFF !important; border: 1.5px solid rgba(255,255,255,0.18) !important; font-size: 0.88rem; font-weight: 700; padding: 7px 10px; font-family: var(--font-mono); text-transform: uppercase;">
+            </div>
+          </div>
+
+          <!-- Dining Type Toggle -->
+          <div>
+            <label style="font-size: 0.76rem; color: #CBD5E1; font-weight: 800; margin-bottom: 4px; display: block; letter-spacing: 0.5px;">DINING PREFERENCE</label>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-sm ${posDiningType === 'Dine-In' ? 'btn-primary' : 'btn-secondary'} btn-pos-dining" data-type="Dine-In" style="flex: 1; font-weight: 700;">
+                🍽️ Dine-In
+              </button>
+              <button class="btn btn-sm ${posDiningType === 'Takeaway' ? 'btn-primary' : 'btn-secondary'} btn-pos-dining" data-type="Takeaway" style="flex: 1; font-weight: 700;">
+                📦 Take-Away
+              </button>
+            </div>
+          </div>
+
+          <!-- Selected Dishes List -->
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-size: 0.8rem; font-weight: 800; text-transform: uppercase; color: #CBD5E1; letter-spacing: 0.5px;">
+                Selected Dishes (${totalItems})
+              </span>
+              ${posCart.length > 0 ? `
+                <button id="btn-pos-clear-cart" style="background: none; border: none; color: #FF6B6B; font-size: 0.75rem; cursor: pointer; font-weight: 800;">
+                  Clear All
+                </button>
+              ` : ''}
+            </div>
+
+            <div class="pos-cart-items-list">
+              ${posCart.length === 0 ? `
+                <div style="text-align: center; padding: 28px 12px; color: #94A3B8; font-size: 0.85rem; border: 1px dashed rgba(255,255,255,0.15); border-radius: 8px;">
+                  🛒 No dishes selected.<br/>Click <strong>+ Add</strong> on any menu dish on the left.
+                </div>
+              ` : posCart.map(item => `
+                <div class="pos-cart-row" style="background: #111A2B !important; border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 8px 10px;">
+                  <div>
+                    <div style="font-weight: 800; font-size: 0.95rem; color: #FFFFFF !important;">${escapeHtml(item.name)}</div>
+                    <div style="font-size: 0.76rem; color: #CBD5E1; margin-top: 2px;">₹${item.price} each</div>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <div class="pos-qty-ctrls">
+                      <button class="pos-qty-btn btn-pos-minus" data-dish-id="${item.id}">−</button>
+                      <span style="font-weight: 800; font-family: var(--font-mono); font-size: 0.95rem; min-width: 20px; text-align: center; color: #FFFFFF !important;">
+                        ${item.qty}
+                      </span>
+                      <button class="pos-qty-btn btn-pos-plus" data-dish-id="${item.id}">+</button>
+                    </div>
+                    <span style="font-weight: 800; color: #FFB703 !important; font-size: 1rem; min-width: 45px; text-align: right; font-family: var(--font-mono);">
+                      ₹${item.price * item.qty}
+                    </span>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- Total & Cash Change Calculator -->
+          <div style="background: #111A2B; border-radius: var(--radius-md); padding: 12px; border: 1px solid rgba(255,255,255,0.12);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 0.95rem; color: #CBD5E1; font-weight: 800;">Net Bill Payable:</span>
+              <span style="font-size: 1.55rem; font-weight: 900; color: #FFB703 !important; font-family: var(--font-mono);">
+                ₹${totalAmount}
+              </span>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+              <span class="badge badge-emerald" style="font-size: 0.78rem; padding: 4px 10px; font-weight: 800; display: inline-flex; align-items: center; gap: 5px;">
+                <span>💵</span> Cash Mode
+              </span>
+              <div style="flex: 1; display: flex; align-items: center; gap: 6px;">
+                <label style="font-size: 0.78rem; color: #CBD5E1; font-weight: 800; white-space: nowrap;">Cash Given:</label>
+                <input type="number" id="pos-cash-given" class="form-input" placeholder="₹ Amount" style="background: #0A0E17 !important; color: #FFFFFF !important; border: 1.5px solid rgba(255,255,255,0.2) !important; padding: 6px 10px; font-size: 0.95rem; font-weight: 800; font-family: var(--font-mono); text-align: right;" min="0">
+              </div>
+            </div>
+
+            <div id="pos-change-container" class="pos-change-box" style="display: none; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.5);">
+              <span style="font-size: 0.88rem; font-weight: 800; color: #FFFFFF !important;">Change to Return:</span>
+              <span id="pos-change-val" style="font-size: 1.25rem; font-weight: 900; color: #34D399 !important; font-family: var(--font-mono);">₹0</span>
+            </div>
+          </div>
+
+          <!-- Punch Order Action Button -->
+          <button class="btn btn-primary btn-lg" id="btn-pos-punch-order" ${posCart.length === 0 ? 'disabled' : ''} style="width: 100%; font-weight: 800; font-size: 1.05rem; padding: 14px; background: linear-gradient(135deg, #10B981 0%, #059669 100%); border: none; box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4); cursor: pointer;">
+            <span>⚡</span> Punch Order & Print Token Slip
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Search event
+    const searchInput = body.querySelector('#pos-dish-search-input');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        posSearchQuery = e.target.value.toLowerCase().trim();
+        renderPosInterface();
+        const freshInput = body.querySelector('#pos-dish-search-input');
+        if (freshInput) {
+          freshInput.focus();
+          freshInput.setSelectionRange(freshInput.value.length, freshInput.value.length);
+        }
+      });
+    }
+
+    // Category pills
+    body.querySelectorAll('.pos-cat-pill').forEach(btn => {
+      btn.addEventListener('click', () => {
+        posActiveCategory = btn.dataset.cat;
+        renderPosInterface();
+      });
+    });
+
+    // Add dish click
+    body.querySelectorAll('.btn-add-pos-dish, .pos-dish-card').forEach(el => {
+      el.addEventListener('click', (e) => {
+        const dishId = el.dataset.dishId || el.closest('.pos-dish-card')?.dataset.dishId;
+        const targetDish = dishes.find(d => d.id === dishId);
+        if (!targetDish) return;
+        const servings = targetDish.servingsCount !== undefined ? targetDish.servingsCount : 25;
+        if (!targetDish.isAvailable || servings <= 0) {
+          showToast(`${targetDish.name} is currently sold out`, 'error');
+          return;
+        }
+
+        const existing = posCart.find(i => i.id === dishId);
+        if (existing) {
+          if (existing.qty >= servings) {
+            showToast(`Only ${servings} servings available for ${targetDish.name}`, 'warning');
+            return;
+          }
+          existing.qty++;
+        } else {
+          posCart.push({
+            id: targetDish.id,
+            name: targetDish.name,
+            price: targetDish.price,
+            qty: 1,
+            isVeg: targetDish.isVeg
+          });
+        }
+        renderPosInterface();
+      });
+    });
+
+    // Dining buttons
+    body.querySelectorAll('.btn-pos-dining').forEach(btn => {
+      btn.addEventListener('click', () => {
+        posDiningType = btn.dataset.type;
+        renderPosInterface();
+      });
+    });
+
+    // Plus/Minus buttons in cart
+    body.querySelectorAll('.btn-pos-plus').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const dishId = btn.dataset.dishId;
+        const existing = posCart.find(i => i.id === dishId);
+        const targetDish = dishes.find(d => d.id === dishId);
+        const servings = targetDish ? (targetDish.servingsCount !== undefined ? targetDish.servingsCount : 25) : 99;
+        if (existing) {
+          if (existing.qty >= servings) {
+            showToast(`Only ${servings} servings left`, 'warning');
+            return;
+          }
+          existing.qty++;
+          renderPosInterface();
+        }
+      });
+    });
+
+    body.querySelectorAll('.btn-pos-minus').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const dishId = btn.dataset.dishId;
+        const existingIndex = posCart.findIndex(i => i.id === dishId);
+        if (existingIndex !== -1) {
+          if (posCart[existingIndex].qty > 1) {
+            posCart[existingIndex].qty--;
+          } else {
+            posCart.splice(existingIndex, 1);
+          }
+          renderPosInterface();
+        }
+      });
+    });
+
+    // Clear cart
+    const clearBtn = body.querySelector('#btn-pos-clear-cart');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        posCart = [];
+        renderPosInterface();
+      });
+    }
+
+    // Cash Given change calculator
+    const cashGivenInput = body.querySelector('#pos-cash-given');
+    const changeBox = body.querySelector('#pos-change-container');
+    const changeVal = body.querySelector('#pos-change-val');
+    if (cashGivenInput && changeBox && changeVal) {
+      cashGivenInput.addEventListener('input', () => {
+        const given = parseFloat(cashGivenInput.value) || 0;
+        if (given > 0) {
+          changeBox.style.display = 'flex';
+          const diff = given - totalAmount;
+          if (diff >= 0) {
+            changeBox.style.background = 'rgba(16, 185, 129, 0.12)';
+            changeBox.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+            changeVal.style.color = '#10B981';
+            changeVal.textContent = `₹${diff}`;
+          } else {
+            changeBox.style.background = 'rgba(239, 68, 68, 0.12)';
+            changeBox.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+            changeVal.style.color = '#EF4444';
+            changeVal.textContent = `Short by ₹${Math.abs(diff)}`;
+          }
+        } else {
+          changeBox.style.display = 'none';
+        }
+      });
+    }
+
+    // Punch order button
+    const punchBtn = body.querySelector('#btn-pos-punch-order');
+    if (punchBtn) {
+      punchBtn.addEventListener('click', async () => {
+        if (posCart.length === 0) {
+          showToast('Please add at least one delicacy to place order', 'warning');
+          return;
+        }
+
+        punchBtn.disabled = true;
+        punchBtn.innerHTML = `<span>⏳</span> Generating Token...`;
+
+        const custName = body.querySelector('#pos-customer-name')?.value?.trim() || 'Counter Diner';
+        const custRoll = body.querySelector('#pos-customer-roll')?.value?.trim().toUpperCase() || 'CASH';
+        const autoAccepted = isShopAutoAcceptEnabled(currentShop.id);
+
+        const orderData = {
+          shopId: currentShop.id,
+          shopName: currentShop.name,
+          stallNumber: currentShop.stallNumber,
+          items: posCart.map(i => ({ id: i.id, name: i.name, price: i.price, qty: i.qty })),
+          totalAmount,
+          status: autoAccepted ? "Kitchen Preparing" : "Placed",
+          diningType: posDiningType,
+          paymentMethod: "Cash (Counter)",
+          paymentStatus: "Paid",
+          transactionId: `CASH-${Date.now().toString().slice(-6)}`,
+          studentName: custName,
+          studentRoll: custRoll,
+          studentPhone: ""
+        };
+
+        try {
+          const createdOrder = state.createOrder(orderData);
+          posCart = [];
+          closeCounterPosModal();
+          showToast(`⚡ Counter Cash Token ${createdOrder.tokenNumber} Placed & Sent to Kitchen!`, 'success');
+          openOrderBillModal(createdOrder);
+          renderApp();
+        } catch (err) {
+          showToast(`Order failed: ${err.message}`, 'error');
+          punchBtn.disabled = false;
+          punchBtn.innerHTML = `<span>⚡</span> Punch Order & Print Token Slip`;
+        }
+      });
+    }
+  }
+
+  // Initial render
+  renderPosInterface();
+  modal.classList.add('open');
+
+  // Close handler
+  const closeBtn = document.getElementById('btn-close-counter-pos');
+  if (closeBtn) {
+    closeBtn.onclick = closeCounterPosModal;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // 3. SVG Sales Graph Generator (Hourly Curve)
 // ---------------------------------------------------------------------------
 function generateSalesChartSvg(hourlyData) {
@@ -343,6 +749,8 @@ export function openPrintableDailyReport(currentShop, shopOrders) {
   const dateStr = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   const totalRevenue = shopOrders.filter(o => o.status !== 'Cancelled').reduce((sum, o) => sum + (o.totalAmount || 0), 0);
   const totalQty = shopOrders.reduce((sum, o) => sum + (o.items || []).reduce((s, i) => s + (i.qty || 1), 0), 0);
+  const cashRevenue = shopOrders.filter(o => o.status !== 'Cancelled' && (o.paymentMethod || '').toLowerCase().includes('cash')).reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+  const onlineRevenue = shopOrders.filter(o => o.status !== 'Cancelled' && !(o.paymentMethod || '').toLowerCase().includes('cash')).reduce((sum, o) => sum + (o.totalAmount || 0), 0);
 
   modal.innerHTML = `
     <div class="modal-box" style="max-width: 850px; max-height: 90vh; overflow-y: auto; background: #FFF; color: #111;">
@@ -366,6 +774,7 @@ export function openPrintableDailyReport(currentShop, shopOrders) {
           <div style="background: #FFF7ED; border: 1px solid #FDBA74; padding: 12px; border-radius: 8px;">
             <div style="font-size: 0.76rem; color: #C2410C; font-weight: 700;">TOTAL REVENUE</div>
             <div style="font-size: 1.4rem; font-weight: 900; color: #9A3412;">₹${totalRevenue}</div>
+            <div style="font-size: 0.72rem; color: #7C2D12; margin-top: 3px;">💵 Cash: ₹${cashRevenue} • 📲 UPI: ₹${onlineRevenue}</div>
           </div>
           <div style="background: #F0FDF4; border: 1px solid #86EFAC; padding: 12px; border-radius: 8px;">
             <div style="font-size: 0.76rem; color: #15803D; font-weight: 700;">TOTAL ORDERS</div>
@@ -393,6 +802,7 @@ export function openPrintableDailyReport(currentShop, shopOrders) {
               <th style="padding: 8px; text-align: left;">Customer</th>
               <th style="padding: 8px; text-align: left;">Food Dishes Ordered</th>
               <th style="padding: 8px; text-align: center;">Dining</th>
+              <th style="padding: 8px; text-align: center;">Payment</th>
               <th style="padding: 8px; text-align: right;">Amount</th>
               <th style="padding: 8px; text-align: center;">Status</th>
             </tr>
@@ -407,6 +817,7 @@ export function openPrintableDailyReport(currentShop, shopOrders) {
                   <td style="padding: 8px;">${escapeHtml(o.studentName || 'Student')} <span style="color: #64748B; font-size: 0.78rem;">(${escapeHtml(o.studentRoll || 'Campus')})</span></td>
                   <td style="padding: 8px; font-weight: 600;">${(o.items || []).map(i => `${i.qty}x ${escapeHtml(i.name)}`).join(', ')}</td>
                   <td style="padding: 8px; text-align: center;">${o.diningType || 'Dine-In'}</td>
+                  <td style="padding: 8px; text-align: center; font-weight: 700;">${(o.paymentMethod || '').toLowerCase().includes('cash') ? '💵 Cash' : '📲 UPI'}</td>
                   <td style="padding: 8px; text-align: right; font-weight: 800;">₹${o.totalAmount}</td>
                   <td style="padding: 8px; text-align: center;">${o.status}</td>
                 </tr>
@@ -539,6 +950,12 @@ export function renderOwnerPortal(container, showToast, renderApp) {
     .filter(o => o.status !== 'Cancelled')
     .reduce((sum, o) => sum + (o.totalAmount || 0), 0);
 
+  const cashOrders = shopOrders.filter(o => o.status !== 'Cancelled' && (o.paymentMethod || '').toLowerCase().includes('cash'));
+  const onlineOrders = shopOrders.filter(o => o.status !== 'Cancelled' && !(o.paymentMethod || '').toLowerCase().includes('cash'));
+
+  const cashRevenue = cashOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+  const onlineRevenue = onlineOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+
   const crowd = state.getCrowdData();
 
   const menuCategories = ['all', ...Array.from(new Set((currentShop.menu || []).map(d => d.category).filter(Boolean)))];
@@ -655,6 +1072,16 @@ export function renderOwnerPortal(container, showToast, renderApp) {
           <span>📊</span> ${isAnalyticsVisible && !isStallClosed ? 'Hide Analytics' : "Business Graph & Reports"}
         </button>
 
+        <!-- Counter POS / Walk-in Cash Order Button -->
+        <button class="btn btn-sm" id="btn-owner-counter-pos" style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFF; font-weight: 800; border: none; border-radius: 6px; padding: 7px 14px; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 10px rgba(16, 185, 129, 0.35); cursor: pointer;" title="Place Walk-in Cash Order for Customer at Counter">
+          <span>💵</span> + Counter Order (Cash)
+        </button>
+
+        <!-- Public Live TV Board Button -->
+        <a href="tv.html" target="_blank" class="btn btn-outline-gold btn-sm" title="Launch Fullscreen Live Token Queue Display on TV / Monitor" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+          <span>📺</span> Live TV Board
+        </a>
+
         <!-- Start New Day Button (Refills stock to 25 servings, archives past orders & starts fresh) -->
         <button class="btn btn-sm" id="btn-owner-start-new-day" style="background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color: #000; font-weight: 800; border: none; border-radius: 6px; padding: 7px 14px; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 10px rgba(245, 158, 11, 0.35); cursor: pointer;" title="Refill all dishes to 25 servings and start fresh with zero pre-orders">
           <span>☀️</span> Start New Day
@@ -689,6 +1116,9 @@ export function renderOwnerPortal(container, showToast, renderApp) {
         <div>
           <div class="stat-value">₹${totalRevenue}</div>
           <div class="stat-label">Stall Today's Revenue</div>
+          <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 3px;">
+            <span style="color: #06B6D4;">📲 UPI: ₹${onlineRevenue}</span> • <span style="color: #10B981;">💵 Cash: ₹${cashRevenue}</span>
+          </div>
         </div>
       </div>
       <div class="stat-card">
@@ -696,6 +1126,9 @@ export function renderOwnerPortal(container, showToast, renderApp) {
         <div>
           <div class="stat-value">${shopOrders.length}</div>
           <div class="stat-label">Total Orders Today</div>
+          <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 3px;">
+            <span>${onlineOrders.length} online</span> • <span>${cashOrders.length} cash</span>
+          </div>
         </div>
       </div>
       <div class="stat-card">
@@ -897,6 +1330,7 @@ export function renderOwnerPortal(container, showToast, renderApp) {
                   <th>Customer (Student)</th>
                   <th>Food Dishes Ordered</th>
                   <th style="text-align: center;">Dining</th>
+                  <th style="text-align: center;">Payment</th>
                   <th style="text-align: right;">Amount</th>
                   <th style="text-align: center;">Status</th>
                   <th style="text-align: center;">Bill</th>
@@ -905,7 +1339,7 @@ export function renderOwnerPortal(container, showToast, renderApp) {
               <tbody id="purchase-table-tbody">
                 ${(purchaseHistoryTab === 'archived' ? (cachedArchivedOrders || []) : shopOrders).length === 0 ? `
                   <tr>
-                    <td colspan="9" style="text-align: center; padding: 30px; color: var(--text-secondary);">
+                    <td colspan="10" style="text-align: center; padding: 30px; color: var(--text-secondary);">
                       ${purchaseHistoryTab === 'archived' ? 'No archived purchases found for this stall.' : 'No purchases recorded today for this stall.'}
                     </td>
                   </tr>
@@ -914,6 +1348,7 @@ export function renderOwnerPortal(container, showToast, renderApp) {
                   const timeStr = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
                   const dateStr = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
                   const dishesStr = (order.items || []).map(i => `${i.qty}x ${i.name}`).join(', ');
+                  const isCash = (order.paymentMethod || '').toLowerCase().includes('cash');
 
                   return `
                     <tr class="purchase-row" 
@@ -941,6 +1376,11 @@ export function renderOwnerPortal(container, showToast, renderApp) {
                       <td style="text-align: center;">
                         <span class="badge ${order.diningType === 'Takeaway' ? 'badge-gold' : 'badge-emerald'}" style="font-size: 0.7rem;">
                           ${order.diningType || 'Dine-In'}
+                        </span>
+                      </td>
+                      <td style="text-align: center;">
+                        <span class="badge ${isCash ? 'badge-emerald' : 'badge-cyan'}" style="font-size: 0.72rem; font-weight: 800; white-space: nowrap;">
+                          ${isCash ? '💵 Cash' : '📲 UPI'}
                         </span>
                       </td>
                       <td style="text-align: right; font-weight: 800; color: var(--primary-gold); font-size: 1rem;">
@@ -1090,100 +1530,101 @@ export function renderOwnerPortal(container, showToast, renderApp) {
         </button>
       </div>
 
+      <!-- COMPACT TABLE VIEW -->
       <div class="stalls-table-wrap">
         <table class="stalls-table">
-          <thead>
-            <tr>
-              <th>Dish</th>
-              <th>Category</th>
-              <th>Diet</th>
-              <th>Price</th>
-              <th>Est. Time</th>
-              <th>Servings Left</th>
-              <th>Availability</th>
-              <th style="text-align: right;">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="owner-menu-tbody">
-            ${(currentShop.menu || []).map(dish => {
-              const servings = dish.servingsCount !== undefined ? dish.servingsCount : 25;
-              let servingsBadge = '';
-              if (servings <= 0) {
-                servingsBadge = `<span class="badge badge-rose" style="font-size: 0.72rem; font-weight: 700;">🔴 0 left (Sold Out)</span>`;
-              } else if (servings <= 5) {
-                servingsBadge = `<span class="badge badge-gold" style="font-size: 0.72rem; font-weight: 700;">⚠️ ${servings} left</span>`;
-              } else {
-                servingsBadge = `<span class="badge badge-emerald" style="font-size: 0.72rem; font-weight: 700;">🟢 ${servings} left</span>`;
-              }
+            <thead>
+              <tr>
+                <th>Dish</th>
+                <th>Category</th>
+                <th>Diet</th>
+                <th>Price</th>
+                <th>Est. Time</th>
+                <th>Servings Left</th>
+                <th>Availability</th>
+                <th style="text-align: right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="owner-menu-tbody">
+              ${(currentShop.menu || []).map(dish => {
+                const servings = dish.servingsCount !== undefined ? dish.servingsCount : 25;
+                let servingsBadge = '';
+                if (servings <= 0) {
+                  servingsBadge = `<span class="badge badge-rose" style="font-size: 0.72rem; font-weight: 700;">🔴 0 left (Sold Out)</span>`;
+                } else if (servings <= 5) {
+                  servingsBadge = `<span class="badge badge-gold" style="font-size: 0.72rem; font-weight: 700;">⚠️ ${servings} left</span>`;
+                } else {
+                  servingsBadge = `<span class="badge badge-emerald" style="font-size: 0.72rem; font-weight: 700;">🟢 ${servings} left</span>`;
+                }
 
-              return `
-              <tr class="dish-row" 
-                  data-dish-id="${dish.id}" 
-                  data-name="${escapeHtml(dish.name)}" 
-                  data-category="${escapeHtml(dish.category || '')}" 
-                  data-badge="${escapeHtml(dish.badge || '')}" 
-                  data-is-veg="${dish.isVeg ? 'true' : 'false'}">
-                <td>
-                  <div style="display: flex; align-items: center; gap: 12px;">
-                    <img src="${dish.image || 'assets/menu/f-1.jpg'}" 
-                         onerror="this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=100'" 
-                         style="width: 44px; height: 44px; border-radius: 8px; object-fit: cover; border: 1px solid var(--border-glass); flex-shrink: 0;" />
-                    <div>
-                      <div style="font-weight: 700; color: #FFF; font-size: 0.95rem; line-height: 1.3;">${escapeHtml(dish.name)}</div>
-                      ${dish.badge ? `<span class="badge badge-gold" style="font-size: 0.65rem; padding: 1px 6px; margin-top: 3px; display: inline-block;">${escapeHtml(dish.badge)}</span>` : ''}
+                return `
+                <tr class="dish-row" 
+                    data-dish-id="${dish.id}" 
+                    data-name="${escapeHtml(dish.name)}" 
+                    data-category="${escapeHtml(dish.category || '')}" 
+                    data-badge="${escapeHtml(dish.badge || '')}" 
+                    data-is-veg="${dish.isVeg ? 'true' : 'false'}">
+                  <td>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                      <img src="${dish.image || 'assets/menu/f-1.jpg'}" 
+                           onerror="this.src='assets/menu/f-1.jpg'" 
+                           style="width: 44px; height: 44px; border-radius: 8px; object-fit: cover; border: 1px solid var(--border-glass); flex-shrink: 0;" />
+                      <div>
+                        <div style="font-weight: 700; color: #FFF; font-size: 0.95rem; line-height: 1.3;">${escapeHtml(dish.name)}</div>
+                        ${dish.badge ? `<span class="badge badge-gold" style="font-size: 0.65rem; padding: 1px 6px; margin-top: 3px; display: inline-block;">${escapeHtml(dish.badge)}</span>` : ''}
+                      </div>
                     </div>
-                  </div>
-                </td>
-                <td><span class="badge badge-gold" style="font-size: 0.74rem;">${escapeHtml(dish.category || 'Special')}</span></td>
-                <td>
-                  <div style="display: flex; align-items: center; gap: 6px;">
-                    <span class="diet-indicator ${dish.isVeg ? 'veg' : 'non-veg'}"></span>
-                    <span style="font-size: 0.82rem;">${dish.isVeg ? 'Veg' : 'Non-Veg'}</span>
-                  </div>
-                </td>
-                <td style="font-weight: 800; color: var(--primary-gold); font-family: var(--font-brand); font-size: 1.05rem;">₹${dish.price}</td>
-                <td style="color: var(--text-secondary); font-size: 0.85rem;">${escapeHtml(dish.prepTime || '10m')}</td>
-                <td>
-                  <div style="display: flex; flex-direction: column; gap: 4px;">
-                    ${servingsBadge}
-                    <div style="display: inline-flex; align-items: center; gap: 3px; margin-top: 3px;">
-                      <button class="btn btn-secondary btn-xs btn-quick-servings" data-shop-id="${currentShop.id}" data-dish-id="${dish.id}" data-delta="-1" title="Deduct 1 serving" style="padding: 2px 7px;">-1</button>
-                      <button class="btn btn-secondary btn-xs btn-quick-servings" data-shop-id="${currentShop.id}" data-dish-id="${dish.id}" data-delta="1" title="Add 1 serving" style="padding: 2px 7px;">+1</button>
-                      <button class="btn btn-secondary btn-xs btn-quick-servings" data-shop-id="${currentShop.id}" data-dish-id="${dish.id}" data-delta="20" title="Restock +20 servings" style="padding: 2px 7px; color: var(--primary-gold); border-color: rgba(255, 159, 28, 0.4);">+20</button>
+                  </td>
+                  <td><span class="badge badge-gold" style="font-size: 0.74rem;">${escapeHtml(dish.category || 'Special')}</span></td>
+                  <td>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                      <span class="diet-indicator ${dish.isVeg ? 'veg' : 'non-veg'}"></span>
+                      <span style="font-size: 0.82rem;">${dish.isVeg ? 'Veg' : 'Non-Veg'}</span>
                     </div>
-                  </div>
-                </td>
-                <td>
-                  <span class="badge ${dish.isAvailable ? 'badge-emerald' : 'badge-rose'}" style="font-size: 0.74rem;">
-                    ${dish.isAvailable ? '● In Stock' : '○ Sold Out'}
-                  </span>
-                </td>
-                <td style="text-align: right;">
-                  <div style="display: inline-flex; align-items: center; gap: 6px; justify-content: flex-end;">
-                    <button class="btn btn-primary btn-sm btn-edit-dish" data-dish-id="${dish.id}" title="Edit Dish Details">
-                      ✏️ Edit
-                    </button>
-                    <button class="btn ${dish.isAvailable ? 'btn-secondary' : 'btn-emerald'} btn-sm btn-toggle-dish-stock" data-dish-id="${dish.id}" title="Toggle Availability">
-                      ${dish.isAvailable ? 'Sold Out' : 'In Stock'}
-                    </button>
-                    <button class="btn btn-secondary btn-sm btn-delete-dish" data-dish-id="${dish.id}" title="Delete Dish" style="color: #EF4444; border-color: rgba(239, 68, 68, 0.3); padding: 6px 10px;">
-                      🗑️
-                    </button>
-                  </div>
+                  </td>
+                  <td style="font-weight: 800; color: var(--primary-gold); font-family: var(--font-brand); font-size: 1.05rem;">₹${dish.price}</td>
+                  <td style="color: var(--text-secondary); font-size: 0.85rem;">${escapeHtml(dish.prepTime || '10m')}</td>
+                  <td>
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                      ${servingsBadge}
+                      <div style="display: inline-flex; align-items: center; gap: 3px; margin-top: 3px;">
+                        <button class="btn btn-secondary btn-xs btn-quick-servings" data-shop-id="${currentShop.id}" data-dish-id="${dish.id}" data-delta="-1" title="Deduct 1 serving" style="padding: 2px 7px;">-1</button>
+                        <button class="btn btn-secondary btn-xs btn-quick-servings" data-shop-id="${currentShop.id}" data-dish-id="${dish.id}" data-delta="1" title="Add 1 serving" style="padding: 2px 7px;">+1</button>
+                        <button class="btn btn-secondary btn-xs btn-quick-servings" data-shop-id="${currentShop.id}" data-dish-id="${dish.id}" data-delta="20" title="Restock +20 servings" style="padding: 2px 7px; color: var(--primary-gold); border-color: rgba(255, 159, 28, 0.4);">+20</button>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge ${dish.isAvailable ? 'badge-emerald' : 'badge-rose'}" style="font-size: 0.74rem;">
+                      ${dish.isAvailable ? '● In Stock' : '○ Sold Out'}
+                    </span>
+                  </td>
+                  <td style="text-align: right;">
+                    <div style="display: inline-flex; align-items: center; gap: 6px; justify-content: flex-end;">
+                      <button class="btn btn-primary btn-sm btn-edit-dish" data-dish-id="${dish.id}" title="Edit Dish Details">
+                        ✏️ Edit
+                      </button>
+                      <button class="btn ${dish.isAvailable ? 'btn-secondary' : 'btn-emerald'} btn-sm btn-toggle-dish-stock" data-dish-id="${dish.id}" title="Toggle Availability">
+                        ${dish.isAvailable ? 'Sold Out' : 'In Stock'}
+                      </button>
+                      <button class="btn btn-secondary btn-sm btn-delete-dish" data-dish-id="${dish.id}" title="Delete Dish" style="color: #EF4444; border-color: rgba(239, 68, 68, 0.3); padding: 6px 10px;">
+                        🗑️
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                `;
+              }).join('')}
+              <tr id="owner-menu-empty-state" style="display: none;">
+                <td colspan="8" style="text-align: center; padding: 40px 20px; color: var(--text-secondary);">
+                  <div style="font-size: 1.8rem; margin-bottom: 8px;">🍽️</div>
+                  <strong>No dishes match your filter criteria.</strong>
+                  <div style="margin-top: 6px; font-size: 0.85rem;">Click "Reset" or change your search terms.</div>
                 </td>
               </tr>
-              `;
-            }).join('')}
-            <tr id="owner-menu-empty-state" style="display: none;">
-              <td colspan="8" style="text-align: center; padding: 40px 20px; color: var(--text-secondary);">
-                <div style="font-size: 1.8rem; margin-bottom: 8px;">🍽️</div>
-                <strong>No dishes match your filter criteria.</strong>
-                <div style="margin-top: 6px; font-size: 0.85rem;">Click "Reset" or change your search terms.</div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+            </tbody>
+          </table>
+        </div>
     </div>
   `;
 
@@ -1226,8 +1667,8 @@ export function renderOwnerPortal(container, showToast, renderApp) {
           <span class="badge badge-gold" style="font-size: 0.72rem;">${order.diningType || 'Dine-In'}</span>
         </div>
 
-        <div style="font-size: 0.85rem; color: var(--text-secondary);">
-          Student: <strong style="color: #FFF;">${order.studentName || 'Student'}</strong> (${order.studentRoll || 'Campus'})
+        <div style="font-size: 0.88rem; color: #CBD5E1;">
+          Customer: <strong style="color: #FFFFFF; font-weight: 800;">${escapeHtml(order.studentName || 'Student')}</strong> <span style="color: #94A3B8;">(${escapeHtml(order.studentRoll || 'Campus')})</span>
         </div>
 
         <div style="margin: 3px 0 6px;">
@@ -1239,18 +1680,38 @@ export function renderOwnerPortal(container, showToast, renderApp) {
           ` : ''}
         </div>
 
-        <div style="background: rgba(0,0,0,0.25); border-radius: 6px; padding: 8px 10px; font-size: 0.85rem;">
-          ${(order.items || []).map(i => `
-            <div style="display: flex; justify-content: space-between;">
-              <span>${i.qty}x ${i.name}</span>
-              <span style="font-weight: 600;">₹${i.price * i.qty}</span>
-            </div>
-          `).join('')}
+        <!-- Rich Food Item List (Like Student Dashboard with Image & Veg/Non-Veg dot) -->
+        <div style="display: flex; flex-direction: column; gap: 7px; background: rgba(0,0,0,0.32); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 8px;">
+          ${(order.items || []).map(i => {
+            const menuItem = (currentShop.menu || []).find(m => m.id === i.id || (m.name && m.name.toLowerCase() === (i.name || '').toLowerCase()));
+            const dishName = i.name || menuItem?.name || 'Delicacy';
+            const dishImg = i.image || menuItem?.image || 'assets/menu/f-1.jpg';
+            const isVeg = i.isVeg !== undefined ? i.isVeg : (menuItem?.isVeg !== undefined ? menuItem.isVeg : true);
+
+            return `
+              <div style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.03); padding: 6px 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.04);">
+                <img src="${dishImg}" alt="${escapeHtml(dishName)}" style="width: 40px; height: 40px; border-radius: 6px; object-fit: cover; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.1);" onerror="this.src='assets/menu/f-1.jpg'" />
+                <div style="flex: 1; min-width: 0;">
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    <span class="diet-indicator ${isVeg ? 'veg' : 'non-veg'}" style="width: 10px; height: 10px; flex-shrink: 0;" title="${isVeg ? 'Vegetarian' : 'Non-Vegetarian'}"></span>
+                    <span style="color: #FFFFFF !important; font-weight: 800; font-size: 0.98rem; line-height: 1.25; word-break: break-word;">${escapeHtml(dishName)}</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: #CBD5E1; margin-top: 2px;">
+                    <span style="background: rgba(255,159,28,0.22); color: #FFB703; font-weight: 800; padding: 1px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.82rem;">${i.qty}x</span>
+                    <span style="color: #CBD5E1;">₹${i.price} each</span>
+                  </div>
+                </div>
+                <div style="font-weight: 800; color: #FFB703 !important; font-family: var(--font-mono); font-size: 0.95rem; text-align: right; flex-shrink: 0; margin-left: 6px;">
+                  ₹${i.price * i.qty}
+                </div>
+              </div>
+            `;
+          }).join('')}
         </div>
 
-        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--text-secondary);">
-          <span>Amount: <strong style="color: var(--primary-gold); font-size: 0.95rem;">₹${order.totalAmount}</strong></span>
-          <span style="font-size: 0.75rem;">${order.timestamp || 'Just now'}</span>
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.88rem; color: #CBD5E1; margin-top: 4px;">
+          <span>Amount: <strong style="color: #FFB703 !important; font-size: 1.05rem; font-weight: 800;">₹${order.totalAmount}</strong></span>
+          <span style="font-size: 0.78rem; color: #94A3B8;">${order.timestamp || 'Just now'}</span>
         </div>
 
         <div style="margin-top: 4px;">
@@ -1396,6 +1857,14 @@ export function renderOwnerPortal(container, showToast, renderApp) {
       } finally {
         renderApp();
       }
+    });
+  }
+
+  // 2b-2. Counter POS Walk-in Cash Order Handler
+  const counterPosBtn = document.getElementById('btn-owner-counter-pos');
+  if (counterPosBtn) {
+    counterPosBtn.addEventListener('click', () => {
+      openCounterPosModal(currentShop, showToast, renderApp);
     });
   }
 
@@ -1932,3 +2401,8 @@ export function renderOwnerPortal(container, showToast, renderApp) {
     });
   }
 }
+
+// Global exposure for modal control
+window.openCounterPosModal = openCounterPosModal;
+window.closeCounterPosModal = closeCounterPosModal;
+

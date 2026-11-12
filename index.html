@@ -384,6 +384,9 @@
           <button class="nav-link-btn" data-portal="admin">
             <span>👑</span> Super Admin
           </button>
+          <a href="tv.html" target="_blank" class="nav-link-btn" title="Open Fullscreen Live Token TV Display Screen" style="text-decoration: none; color: inherit; display: inline-flex; align-items: center; gap: 6px;">
+            <span>📺</span> Live TV Screen
+          </a>
         </nav>
 
         <!-- User Session Actions & Theme Toggle -->
@@ -488,6 +491,26 @@
         </div>
         <div class="modal-body" id="bill-receipt-content" style="overflow-y: auto; padding: 20px;">
           <!-- Populated by bill.js -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Manager Counter POS / Walk-in Cash Order Modal -->
+    <div id="counter-pos-modal" class="modal-overlay">
+      <div class="modal-box counter-pos-box" style="max-width: 980px; max-height: 92vh; width: 95%; display: flex; flex-direction: column;">
+        <div class="modal-header" style="background: rgba(16, 185, 129, 0.08); border-bottom: 1.5px solid rgba(16, 185, 129, 0.3);">
+          <div>
+            <h2 class="modal-title" style="display: flex; align-items: center; gap: 8px; color: #10B981; font-weight: 800;">
+              <span>💵</span> Counter POS Billing • Walk-in Cash Order
+            </h2>
+            <p style="font-size: 0.78rem; color: var(--text-secondary); margin: 3px 0 0 0;">
+              Punches cash walk-in orders directly into the unified kitchen token queue in real time
+            </p>
+          </div>
+          <button class="modal-close-btn" id="btn-close-counter-pos">&times;</button>
+        </div>
+        <div class="modal-body" id="counter-pos-body" style="overflow-y: auto; padding: 18px 20px;">
+          <!-- Populated by js/owner.js -->
         </div>
       </div>
     </div>

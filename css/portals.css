@@ -2688,5 +2688,191 @@ html:not(.dark) .token-countdown-active {
   }
 }
 
+/* ==========================================================================
+   COUNTER POS / WALK-IN CASH ORDER BILLING SYSTEM
+   ========================================================================== */
+.pos-layout {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .pos-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pos-search-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.pos-categories-wrap {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  margin-bottom: 14px;
+}
+
+.pos-cat-pill {
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  font-size: 0.78rem;
+  font-weight: 700;
+  border: 1px solid var(--border-glass);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+}
+
+.pos-cat-pill:hover, .pos-cat-pill.active {
+  background: var(--primary-gold);
+  color: #0A0E17;
+  border-color: var(--primary-gold);
+}
+
+.pos-dish-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+  max-height: 520px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.counter-pos-box {
+  background: #0F172A !important;
+  border: 1.5px solid rgba(16, 185, 129, 0.4) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6) !important;
+}
+
+.pos-dish-card {
+  background: #1E293B !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: var(--radius-md);
+  padding: 12px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  position: relative;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  color: #FFFFFF !important;
+}
+
+.pos-dish-card:hover {
+  border-color: var(--accent-emerald) !important;
+  background: #24344D !important;
+  transform: translateY(-2px);
+}
+
+.pos-dish-card.out-of-stock {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: grayscale(0.8);
+}
+
+.pos-dish-img {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  flex-shrink: 0;
+  background-color: #1e293b;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.pos-dish-card .dish-price {
+  font-family: var(--font-mono);
+  font-weight: 800;
+  color: #FFB703 !important;
+  font-size: 1.05rem;
+}
+
+.pos-dish-card .dish-stock-tag {
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #CBD5E1 !important;
+}
+
+.pos-cart-panel {
+  background: #182234 !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  color: #FFFFFF !important;
+}
+
+.pos-cart-items-list {
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 4px;
+}
+
+.pos-cart-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-glass);
+}
+
+.pos-qty-ctrls {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pos-qty-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 4px;
+  border: 1px solid var(--border-glass);
+  background: rgba(255, 255, 255, 0.1);
+  color: #FFF;
+  font-weight: 800;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.pos-qty-btn:hover {
+  background: var(--primary-gold);
+  color: #000;
+}
+
+.pos-change-box {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+
 
 

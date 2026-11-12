@@ -738,6 +738,15 @@ app.post('/api/orders', async (req, res) => {
     systemData.tokenCounter = seq + 1;
     saveJSON(SYSTEM_FILE, systemData);
     tokenNumber = `TK-${String(seq).padStart(2, '0')}`;
+  } else {
+    const match = String(tokenNumber).match(/TK-(\d+)/i);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (num >= (systemData.tokenCounter || 1)) {
+        systemData.tokenCounter = num + 1;
+        saveJSON(SYSTEM_FILE, systemData);
+      }
+    }
   }
   const orderId = req.body.id || `KEC-${Math.floor(1000 + Math.random() * 9000)}`;
 
@@ -752,7 +761,7 @@ app.post('/api/orders', async (req, res) => {
     `Total: Rs.${req.body.totalAmount || 0}`,
     `Dining: ${req.body.diningType || 'Dine-In'}`,
     `Status: ${req.body.status || 'Placed'}`,
-    `Payment: PAID ONLINE`,
+    `Payment: ${req.body.paymentMethod || 'Paid'}`,
     `Verified KEC Smart Dining`
   ].join('\n');
 
@@ -1141,6 +1150,11 @@ app.get('/api/students/:rollNo', (req, res) => {
     student,
     orders: studentOrders
   });
+});
+
+// Dedicated Fullscreen Public TV Queue Display Route
+app.get('/tv', (req, res) => {
+  res.sendFile(path.join(__dirname, 'tv.html'));
 });
 
 // Serve frontend static assets with no-cache headers for instant live updates
