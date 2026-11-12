@@ -2,6 +2,15 @@ import { state } from './state.js';
 import { openOrderBillModal } from './bill.js';
 import { calculateOrderEstimatedPrep, playReadyChime } from './countdown.js';
 
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 export function renderStudentPortal(container, showToast, renderApp) {
   const shops = state.getShops();
   const orders = state.getOrders();
@@ -12,18 +21,21 @@ export function renderStudentPortal(container, showToast, renderApp) {
   // Trigger immediate cross-device sync when student portal is rendered
   try { state.syncBackendOrders(); } catch (e) {}
 
-  // Filter student's active orders (Matches by roll number across mobile and web)
-  let guestOrderIds = [];
-  try {
-    guestOrderIds = JSON.parse(localStorage.getItem('kec_guest_order_ids') || '[]');
-  } catch (e) {
-    guestOrderIds = [];
-  }
+  // Helper to ensure an order belongs strictly to today (operating day)
+  const isOrderToday = (o) => {
+    if (!o) return false;
+    const t = o.createdTime ? new Date(o.createdTime) : null;
+    if (!t || isNaN(t.getTime())) return false;
+    const now = new Date();
+    return t.getFullYear() === now.getFullYear() &&
+           t.getMonth() === now.getMonth() &&
+           t.getDate() === now.getDate();
+  };
 
   const cleanCurrentRoll = (currentUser && currentUser.rollNo) ? String(currentUser.rollNo).trim().toUpperCase() : '';
   const studentOrders = cleanCurrentRoll
-    ? orders.filter(o => o.studentRoll && String(o.studentRoll).trim().toUpperCase() === cleanCurrentRoll)
-    : orders.filter(o => guestOrderIds.includes(o.id));
+    ? orders.filter(o => o.studentRoll && String(o.studentRoll).trim().toUpperCase() === cleanCurrentRoll && isOrderToday(o))
+    : [];
 
   let currentCategory = 'all';
   let searchQuery = '';
@@ -113,12 +125,20 @@ export function renderStudentPortal(container, showToast, renderApp) {
 
       <div class="orders-board">
         ${studentOrders.length === 0 ? `
-          <div class="glass-panel" style="padding: 28px 20px; text-align: center; grid-column: 1 / -1; color: var(--text-secondary);">
-            <div style="font-size: 1.1rem; font-weight: 700; color: #FFFFFF; margin-bottom: 6px;">No Active Tokens For This Device</div>
-            <p style="font-size: 0.85rem; margin-bottom: 16px;">If you placed an order from your phone or another window with login <strong>${cleanCurrentRoll || 'KEERTHIRAM G R'}</strong>, sync now to load it:</p>
-            <button id="btn-sync-empty-state" class="btn btn-outline-gold btn-sm" style="display: inline-flex; align-items: center; gap: 6px;">
-              <span>🔄</span> Sync Orders from Campus Server
-            </button>
+          <div class="glass-panel" style="padding: 32px 20px; text-align: center; grid-column: 1 / -1; color: var(--text-secondary); border-radius: var(--radius-lg); background: rgba(255,255,255,0.02); border: 1px dashed var(--border-glass);">
+            <div style="font-size: 2.2rem; margin-bottom: 8px;">🍽️</div>
+            <div style="font-size: 1.15rem; font-weight: 800; color: #FFFFFF; margin-bottom: 6px;">No Active Food Orders Yet</div>
+            <p style="font-size: 0.88rem; max-width: 480px; margin: 0 auto 18px; color: var(--text-secondary);">
+              Welcome <strong>${escapeHtml(currentUser && currentUser.name ? currentUser.name : 'Student')}</strong>! Your dining board is completely fresh. Browse our campus stalls below, add dishes to your tray, and track your kitchen token in real time.
+            </p>
+            <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+              <button class="btn btn-primary btn-sm" onclick="document.getElementById('stalls-section').scrollIntoView({behavior: 'smooth'})">
+                <span>🍔</span> Browse Stalls & Order Now
+              </button>
+              <button id="btn-sync-empty-state" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 6px;">
+                <span>🔄</span> Sync Server
+              </button>
+            </div>
           </div>
         ` : studentOrders.map(order => {
           const calc = calculateOrderEstimatedPrep(order);

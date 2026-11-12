@@ -135,22 +135,29 @@ export function calculateOrderEstimatedPrep(order, allOrders = null, allShops = 
   // CONDITION 2: NO. OF PEOPLE / ORDERS AHEAD (Stall Queue Length)
   // --------------------------------------------------------------------------
   const orderCreatedTime = order.createdTime ? Number(order.createdTime) : Date.now();
+  const todayStart = new Date().setHours(0, 0, 0, 0);
   
-  // Find all earlier pending orders for this specific stall
+  // Find all earlier pending orders for this specific stall placed strictly TODAY
   const activeOrdersAhead = orders.filter(o => {
-    if (o.id === order.id) return false;
+    if (!o || o.id === order.id) return false;
     const sameStall = (o.shopId && order.shopId && o.shopId === order.shopId) ||
                       (o.stallNumber && order.stallNumber && o.stallNumber === order.stallNumber);
     if (!sameStall) return false;
 
-    // Must be placed before this order or earlier in queue
+    // Must be placed TODAY
     const oCreated = o.createdTime ? Number(o.createdTime) : 0;
+    if (oCreated < todayStart) return false;
+
+    // Must be placed before this order or earlier in queue
     const isEarlier = oCreated <= orderCreatedTime;
 
-    // Must still be active (not completed or ready)
-    const isPending = o.status !== 'Completed' && o.status !== 'Ready at Counter';
+    // Must still be actively pending in kitchen (Placed or Kitchen Preparing only)
+    const isPending = o.status === 'Placed' || o.status === 'Kitchen Preparing';
 
-    return isEarlier && isPending;
+    // Discard stale pending orders older than 45 minutes from previous shifts
+    const isRecent = (orderCreatedTime - oCreated) < (45 * 60 * 1000);
+
+    return isEarlier && isPending && isRecent;
   });
 
   const peopleAheadCount = activeOrdersAhead.length;

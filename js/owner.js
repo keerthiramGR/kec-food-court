@@ -1,6 +1,7 @@
 import { state } from './state.js';
 import { openDeliveryQrScannerModal } from './scanner.js';
 import { calculateOrderEstimatedPrep } from './countdown.js';
+import { openOrderBillModal } from './bill.js';
 
 let ownerMenuSearchQuery = '';
 let ownerMenuCategoryFilter = 'all';
@@ -9,6 +10,8 @@ let ownerMenuDietFilter = 'all';
 let showBusinessAnalytics = false;
 let purchaseSearchQuery = '';
 let purchaseStatusFilter = 'all';
+let purchaseHistoryTab = 'today';
+let cachedArchivedOrders = null;
 
 function escapeHtml(str) {
   if (str === null || str === undefined) return '';
@@ -512,7 +515,20 @@ export function renderOwnerPortal(container, showToast, renderApp) {
   }
 
   const allOrders = state.getOrders();
-  const shopOrders = allOrders.filter(o => o.shopId === currentShop.id);
+
+  // Helper to ensure an order belongs strictly to today (operating day)
+  const isOrderToday = (o) => {
+    if (!o) return false;
+    const t = o.createdTime ? new Date(o.createdTime) : null;
+    if (!t || isNaN(t.getTime())) return false;
+    const now = new Date();
+    return t.getFullYear() === now.getFullYear() &&
+           t.getMonth() === now.getMonth() &&
+           t.getDate() === now.getDate();
+  };
+
+  // Only consider orders placed TODAY for today's stall revenue, active counts & live kitchen flow
+  const shopOrders = allOrders.filter(o => o.shopId === currentShop.id && isOrderToday(o));
 
   const placedOrders = shopOrders.filter(o => o.status === 'Placed');
   const preparingOrders = shopOrders.filter(o => o.status === 'Kitchen Preparing');
@@ -637,6 +653,11 @@ export function renderOwnerPortal(container, showToast, renderApp) {
         <!-- Toggle Business Analytics Button -->
         <button class="btn btn-outline-gold btn-sm" id="btn-toggle-business-analytics" title="View Today's Business Graph & Reports">
           <span>📊</span> ${isAnalyticsVisible && !isStallClosed ? 'Hide Analytics' : "Business Graph & Reports"}
+        </button>
+
+        <!-- Start New Day Button (Refills stock to 25 servings, archives past orders & starts fresh) -->
+        <button class="btn btn-sm" id="btn-owner-start-new-day" style="background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color: #000; font-weight: 800; border: none; border-radius: 6px; padding: 7px 14px; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 10px rgba(245, 158, 11, 0.35); cursor: pointer;" title="Refill all dishes to 25 servings and start fresh with zero pre-orders">
+          <span>☀️</span> Start New Day
         </button>
 
         <!-- Live Stall Open/Close Toggle -->
@@ -831,10 +852,23 @@ export function renderOwnerPortal(container, showToast, renderApp) {
         <div style="margin-top: 24px;">
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 12px;">
             <div>
-              <h3 style="font-size: 1.1rem; color: #FFF; display: flex; align-items: center; gap: 8px;">
-                <span>📋</span> All Details of Purchase & Transactions (${shopOrders.length})
-              </h3>
-              <p style="font-size: 0.82rem; color: var(--text-secondary);">Itemized register of all tokens, students, ordered dishes, and billing</p>
+              <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <h3 style="font-size: 1.1rem; color: #FFF; display: flex; align-items: center; gap: 8px; margin: 0;">
+                  <span>📋</span> Detailed Purchase Register
+                </h3>
+                <!-- Tab switcher: Today vs Past Days History -->
+                <div style="display: inline-flex; background: rgba(0,0,0,0.35); border: 1px solid var(--border-glass); border-radius: 8px; padding: 2px;">
+                  <button class="btn btn-xs ${purchaseHistoryTab === 'today' ? 'btn-primary' : 'btn-secondary'}" id="btn-tab-today-purchases" style="border: none; padding: 4px 10px; font-weight: 700; font-size: 0.76rem;">
+                    Today (${shopOrders.length})
+                  </button>
+                  <button class="btn btn-xs ${purchaseHistoryTab === 'archived' ? 'btn-primary' : 'btn-secondary'}" id="btn-tab-archived-purchases" style="border: none; padding: 4px 10px; font-weight: 700; font-size: 0.76rem;">
+                    📜 Past History (${cachedArchivedOrders ? cachedArchivedOrders.length : 'Archive'})
+                  </button>
+                </div>
+              </div>
+              <p style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 4px;">
+                ${purchaseHistoryTab === 'archived' ? 'All previous days completed sales, student records, and archived bills' : 'Itemized register of all tokens, students, ordered dishes, and billing for today'}
+              </p>
             </div>
 
             <!-- Toolbar: Search & Status Filter -->
@@ -857,7 +891,7 @@ export function renderOwnerPortal(container, showToast, renderApp) {
             <table class="purchases-table">
               <thead>
                 <tr>
-                  <th>Time</th>
+                  <th>Time & Date</th>
                   <th>Order ID</th>
                   <th>Token</th>
                   <th>Customer (Student)</th>
@@ -865,18 +899,20 @@ export function renderOwnerPortal(container, showToast, renderApp) {
                   <th style="text-align: center;">Dining</th>
                   <th style="text-align: right;">Amount</th>
                   <th style="text-align: center;">Status</th>
+                  <th style="text-align: center;">Bill</th>
                 </tr>
               </thead>
               <tbody id="purchase-table-tbody">
-                ${shopOrders.length === 0 ? `
+                ${(purchaseHistoryTab === 'archived' ? (cachedArchivedOrders || []) : shopOrders).length === 0 ? `
                   <tr>
-                    <td colspan="8" style="text-align: center; padding: 30px; color: var(--text-secondary);">
-                      No purchases recorded today for this stall.
+                    <td colspan="9" style="text-align: center; padding: 30px; color: var(--text-secondary);">
+                      ${purchaseHistoryTab === 'archived' ? 'No archived purchases found for this stall.' : 'No purchases recorded today for this stall.'}
                     </td>
                   </tr>
-                ` : shopOrders.map(order => {
+                ` : (purchaseHistoryTab === 'archived' ? (cachedArchivedOrders || []) : shopOrders).map(order => {
                   const d = order.createdTime ? new Date(order.createdTime) : new Date();
                   const timeStr = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+                  const dateStr = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
                   const dishesStr = (order.items || []).map(i => `${i.qty}x ${i.name}`).join(', ');
 
                   return `
@@ -885,7 +921,10 @@ export function renderOwnerPortal(container, showToast, renderApp) {
                         data-dishes="${escapeHtml(dishesStr)}"
                         data-token="${escapeHtml(order.tokenNumber || '')}"
                         data-status="${escapeHtml(order.status || '')}">
-                      <td style="color: var(--text-secondary);">${timeStr}</td>
+                      <td style="color: var(--text-secondary); font-size: 0.8rem;">
+                        <div>${timeStr}</div>
+                        <div style="font-size: 0.72rem; color: var(--text-muted);">${dateStr}</div>
+                      </td>
                       <td style="font-family: var(--font-mono); font-weight: 700; color: #FFF;">#${order.id}</td>
                       <td>
                         <span style="font-family: var(--font-mono); font-weight: 800; color: var(--primary-gold); font-size: 1rem;">
@@ -911,6 +950,11 @@ export function renderOwnerPortal(container, showToast, renderApp) {
                         <span class="badge ${order.status === 'Completed' ? 'badge-emerald' : order.status === 'Kitchen Preparing' ? 'badge-cyan' : 'badge-gold'}" style="font-size: 0.72rem;">
                           ${order.status}
                         </span>
+                      </td>
+                      <td style="text-align: center;">
+                        <button class="btn btn-xs btn-outline-gold btn-view-purchase-bill" data-order-id="${order.id}" style="padding: 3px 8px; font-size: 0.75rem;" title="View official printable bill receipt">
+                          <span>🧾</span> Bill
+                        </button>
                       </td>
                     </tr>
                   `;
@@ -1325,6 +1369,69 @@ export function renderOwnerPortal(container, showToast, renderApp) {
       renderApp();
     });
   }
+
+  // 2b. Start New Day Handler
+  const startNewDayBtn = document.getElementById('btn-owner-start-new-day');
+  if (startNewDayBtn) {
+    startNewDayBtn.addEventListener('click', async () => {
+      const confirmAction = confirm(
+        `☀️ START NEW DAY FOR ${currentShop.name.toUpperCase()}?\n\n` +
+        `This will:\n` +
+        `1. Refill ALL menu dishes to full 25 servings (and mark In Stock).\n` +
+        `2. Move previous orders safely into Past Sales & Bill History.\n` +
+        `3. Start fresh with 0 pre-orders and clean bills for today.\n\n` +
+        `Do you want to proceed?`
+      );
+      if (!confirmAction) return;
+
+      startNewDayBtn.disabled = true;
+      startNewDayBtn.innerHTML = `<span>⏳</span> Starting...`;
+
+      try {
+        await state.startNewDay(currentShop.id);
+        cachedArchivedOrders = null;
+        showToast(`☀️ Fresh Day Started for ${currentShop.name}! All dishes refilled & token queue is fresh.`, 'success');
+      } catch (err) {
+        showToast(`Notice starting day: ${err.message}`, 'error');
+      } finally {
+        renderApp();
+      }
+    });
+  }
+
+  // 2c. Purchase History Tabs (Today vs Archived Past Days)
+  const tabTodayBtn = document.getElementById('btn-tab-today-purchases');
+  const tabArchivedBtn = document.getElementById('btn-tab-archived-purchases');
+  if (tabTodayBtn) {
+    tabTodayBtn.addEventListener('click', () => {
+      purchaseHistoryTab = 'today';
+      renderApp();
+    });
+  }
+  if (tabArchivedBtn) {
+    tabArchivedBtn.addEventListener('click', async () => {
+      purchaseHistoryTab = 'archived';
+      if (!cachedArchivedOrders) {
+        tabArchivedBtn.textContent = '⏳ Loading...';
+        cachedArchivedOrders = await state.getOrdersHistory({ shopId: currentShop.id });
+      }
+      renderApp();
+    });
+  }
+
+  // 2d. View Bill for Any Order in Purchase Register (Today or Past Archived Days)
+  container.querySelectorAll('.btn-view-purchase-bill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const orderId = btn.dataset.orderId;
+      const allOrdersList = [...state.getOrders(), ...(cachedArchivedOrders || [])];
+      const target = allOrdersList.find(o => o.id === orderId);
+      if (target) {
+        openOrderBillModal(target);
+      } else {
+        showToast('Order bill not found', 'error');
+      }
+    });
+  });
 
   // 3. Order Status Transitions
   container.querySelectorAll('.btn-action-order').forEach(btn => {

@@ -5,7 +5,18 @@ export function renderAdminPortal(container, showToast, renderApp) {
   const shops = state.getShops();
   const allOrders = state.getOrders();
 
-  const totalFoodCourtRevenue = allOrders
+  const isOrderToday = (o) => {
+    if (!o) return false;
+    const t = o.createdTime ? new Date(o.createdTime) : null;
+    if (!t || isNaN(t.getTime())) return false;
+    const now = new Date();
+    return t.getFullYear() === now.getFullYear() &&
+           t.getMonth() === now.getMonth() &&
+           t.getDate() === now.getDate();
+  };
+
+  const todayOrders = allOrders.filter(isOrderToday);
+  const totalFoodCourtRevenue = todayOrders
     .filter(o => o.status !== 'Cancelled')
     .reduce((sum, o) => sum + (o.totalAmount || 0), 0);
 
@@ -28,6 +39,9 @@ export function renderAdminPortal(container, showToast, renderApp) {
         </p>
 
         <div style="display: flex; gap: 14px; flex-wrap: wrap;">
+          <button class="btn btn-warning btn-lg" id="btn-admin-start-new-day" style="background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color: #000; font-weight: 800; border: none; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4); display: inline-flex; align-items: center; gap: 8px; cursor: pointer;" title="Refill all food & juice stock across all stalls, archive past orders, and reset token queue to TK-01">
+            <span>☀️</span> Start New Day (All Stalls)
+          </button>
           <button class="btn btn-primary btn-lg" onclick="document.getElementById('add-shop-section').scrollIntoView({behavior: 'smooth'})">
             <span>➕</span> Add New Shop & Create Portal
           </button>
@@ -66,15 +80,15 @@ export function renderAdminPortal(container, showToast, renderApp) {
       <div class="stat-card">
         <div class="stat-icon" style="color: #06B6D4;">🎟️</div>
         <div>
-          <div class="stat-value">${allOrders.length}</div>
-          <div class="stat-label">Campus Tokens Processed</div>
+          <div class="stat-value">${todayOrders.length}</div>
+          <div class="stat-label">Campus Tokens Today</div>
         </div>
       </div>
       <div class="stat-card">
         <div class="stat-icon" style="color: #EC4899;">💵</div>
         <div>
           <div class="stat-value">₹${totalFoodCourtRevenue.toLocaleString()}</div>
-          <div class="stat-label">Campus Total Revenue</div>
+          <div class="stat-label">Campus Revenue Today</div>
         </div>
       </div>
     </div>
@@ -357,6 +371,34 @@ export function renderAdminPortal(container, showToast, renderApp) {
       setTimeout(() => {
         renderApp();
       }, 3500);
+    });
+  }
+
+  // Master Start New Day Handler for All Stalls
+  const adminStartNewDayBtn = document.getElementById('btn-admin-start-new-day');
+  if (adminStartNewDayBtn) {
+    adminStartNewDayBtn.addEventListener('click', async () => {
+      const confirmAction = confirm(
+        `☀️ MASTER START NEW DAY FOR ENTIRE FOOD COURT?\n\n` +
+        `This will:\n` +
+        `1. Refill ALL dishes & juices across all stalls to full 25 servings (marked In Stock).\n` +
+        `2. Move all current orders into Past Sales & Bill History (preserving past revenue & bills).\n` +
+        `3. Start fresh with 0 active orders & tokens starting from TK-01 for today.\n\n` +
+        `Do you want to proceed?`
+      );
+      if (!confirmAction) return;
+
+      adminStartNewDayBtn.disabled = true;
+      adminStartNewDayBtn.innerHTML = `<span>⏳</span> Initializing Fresh Day...`;
+
+      try {
+        await state.startNewDay('all');
+        showToast('☀️ New Operational Day Started! All stalls refilled & active tokens reset to TK-01.', 'success');
+      } catch (err) {
+        showToast(`Notice starting new day: ${err.message}`, 'error');
+      } finally {
+        renderApp();
+      }
     });
   }
 

@@ -58,9 +58,13 @@ class FoodCourtState {
         this.syncChannel = new BroadcastChannel('kec_foodcourt_sync');
         this.syncChannel.onmessage = (event) => {
           const { action, payload } = event.data || {};
-          if (action === 'SHOPS_UPDATED' || action === 'ORDER_CREATED' || action === 'MENU_UPDATED' || action === 'ORDER_STATUS_CHANGED' || action === 'ORDERS_UPDATED') {
+          if (action === 'SHOPS_UPDATED' || action === 'ORDER_CREATED' || action === 'MENU_UPDATED' || action === 'ORDER_STATUS_CHANGED' || action === 'ORDERS_UPDATED' || action === 'NEW_DAY_STARTED') {
             this.notify('SHOPS_UPDATED', this.getShops());
             this.notify('ORDERS_UPDATED', this.getOrders());
+            if (action === 'NEW_DAY_STARTED') {
+              try { localStorage.removeItem('kec_foodcourt_guest_orders'); } catch (e) {}
+              this.notify('NEW_DAY_STARTED', payload);
+            }
             if (action === 'ORDER_CREATED' && payload) {
               this.notify('ORDER_CREATED', payload);
             }
@@ -174,30 +178,7 @@ class FoodCourtState {
       if (res.ok) {
         const data = await res.json();
         if (data && Array.isArray(data.orders)) {
-          const localOrders = this.getOrders();
-          const serverOrderIds = new Set(data.orders.map(o => o.id));
-
-          // If an order was placed on this phone while temporarily offline, upload it to server now
-          for (const localOrder of localOrders) {
-            if (!serverOrderIds.has(localOrder.id) && localOrder.items && localOrder.totalAmount) {
-              try {
-                const uploadRes = await fetch(`${baseUrl}/api/orders`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(localOrder)
-                });
-                if (uploadRes.ok) {
-                  const uploaded = await uploadRes.json();
-                  if (uploaded && uploaded.order) {
-                    data.orders.unshift(uploaded.order);
-                    serverOrderIds.add(uploaded.order.id);
-                  }
-                }
-              } catch (e) {}
-            }
-          }
-
-          // Authoritative order list synchronized across phone and website
+          // Authoritative order list synchronized from server for today
           data.orders.sort((a, b) => (b.createdTime || 0) - (a.createdTime || 0));
           const prevOrdersRaw = localStorage.getItem(STORAGE_KEYS.ORDERS);
           const nextOrdersRaw = JSON.stringify(data.orders);
@@ -494,7 +475,13 @@ class FoodCourtState {
   getOrders() {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.ORDERS);
-      return data ? JSON.parse(data) : INITIAL_ORDERS;
+      const parsed = data ? JSON.parse(data) : INITIAL_ORDERS;
+      if (!Array.isArray(parsed)) return INITIAL_ORDERS;
+      const todayStart = new Date().setHours(0, 0, 0, 0);
+      return parsed.filter(o => {
+        if (!o || !o.createdTime) return false;
+        return Number(o.createdTime) >= todayStart;
+      });
     } catch {
       return INITIAL_ORDERS;
     }
@@ -504,6 +491,76 @@ class FoodCourtState {
     localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders));
     this.notify('ORDERS_UPDATED', orders);
     this.broadcast('ORDERS_UPDATED', orders);
+  }
+
+  async startNewDay(targetShopId = 'all') {
+    try {
+      const baseUrl = getApiBaseUrl();
+      const res = await fetch(`${baseUrl}/api/day/start-new-day`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shopId: targetShopId })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.success) {
+          if (data.shops) {
+            localStorage.setItem(STORAGE_KEYS.SHOPS, JSON.stringify(data.shops));
+            this.notify('SHOPS_UPDATED', data.shops);
+          }
+          if (Array.isArray(data.orders)) {
+            localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(data.orders));
+            this.notify('ORDERS_UPDATED', data.orders);
+          }
+          try { localStorage.removeItem('kec_foodcourt_guest_orders'); } catch (e) {}
+          this.clearCart();
+          this.broadcast('NEW_DAY_STARTED', data);
+          return data;
+        }
+      }
+    } catch (e) {
+      console.warn('Backend start-new-day notice:', e);
+    }
+
+    // Local fallback if offline
+    const shops = this.getShops();
+    shops.forEach(s => {
+      if (targetShopId === 'all' || s.id === targetShopId) {
+        s.isOpen = true;
+        if (Array.isArray(s.menu)) {
+          s.menu.forEach(d => {
+            d.servingsCount = 25;
+            d.isAvailable = true;
+          });
+        }
+      }
+    });
+    this.saveShops(shops);
+
+    let orders = this.getOrders();
+    if (targetShopId === 'all') {
+      orders = [];
+    } else {
+      orders = orders.filter(o => o.shopId !== targetShopId);
+    }
+    this.saveOrders(orders);
+    try { localStorage.removeItem('kec_foodcourt_guest_orders'); } catch (e) {}
+    this.clearCart();
+    this.broadcast('NEW_DAY_STARTED', { success: true, targetShopId });
+    return { success: true, targetShopId };
+  }
+
+  async getOrdersHistory(filter = {}) {
+    try {
+      const baseUrl = getApiBaseUrl();
+      const params = new URLSearchParams(filter).toString();
+      const res = await fetch(`${baseUrl}/api/orders/history?${params}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.orders) return data.orders;
+      }
+    } catch (e) {}
+    return [];
   }
 
   createOrder(orderData) {

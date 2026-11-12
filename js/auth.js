@@ -127,25 +127,8 @@ export function initAuth(showToast, renderApp) {
       };
 
       state.login(studentUser);
-
-      // Claim any local guest orders on this device for this student account
-      try {
-        const guestOrderIds = JSON.parse(localStorage.getItem('kec_guest_order_ids') || '[]');
-        if (guestOrderIds.length > 0) {
-          guestOrderIds.forEach(orderId => {
-            fetch(`${getApiBaseUrl()}/api/orders/${orderId}/claim`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                studentRoll: rollNo,
-                studentName: name,
-                studentPhone: mobile
-              })
-            }).catch(() => {});
-          });
-          localStorage.removeItem('kec_guest_order_ids');
-        }
-      } catch (e) {}
+      state.clearCart(); // Fresh tray/cart for newly logged in student
+      try { localStorage.removeItem('kec_guest_order_ids'); } catch (e) {}
 
       // Store and synchronize student profile with backend & persistent disk
       try {
@@ -247,11 +230,9 @@ export function initAuth(showToast, renderApp) {
     renderApp();
   };
 
-  // Initial check on load: If user is not logged in, ensure gateway is visible and site is hidden
-  const currentUser = state.getCurrentUser();
-  if (!currentUser) {
+  // Initial check on load: Always prompt for login after starting
+  state.logout();
+  if (window.showLoginGateway) {
     window.showLoginGateway('student');
-  } else {
-    window.hideLoginGateway();
   }
 }

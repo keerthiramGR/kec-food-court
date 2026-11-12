@@ -27,7 +27,7 @@
         "category": "Parotta & Roti",
         "prepTime": "3m",
         "isAvailable": true,
-        "servingsCount": 11
+        "servingsCount": 9
       },
       {
         "id": "f-2",
@@ -50,7 +50,7 @@
         "category": "Parotta & Roti",
         "prepTime": "8m",
         "isAvailable": true,
-        "servingsCount": 22
+        "servingsCount": 21
       },
       {
         "id": "f-4",
@@ -73,7 +73,7 @@
         "category": "Parotta & Roti",
         "prepTime": "8m",
         "isAvailable": true,
-        "servingsCount": 23
+        "servingsCount": 22
       },
       {
         "id": "f-6",
@@ -588,8 +588,7 @@
         "price": 70,
         "category": "Veg Specials",
         "prepTime": "10m",
-        "isAvailable": true,
-        "servingsCount": 24
+        "isAvailable": true
       },
       {
         "id": "f-54",

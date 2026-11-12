@@ -19,9 +19,11 @@ if (!fs.existsSync(DATA_DIR)) {
   try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch (e) {}
 }
 const ORDERS_FILE = path.join(DATA_DIR, 'orders.json');
+const ORDERS_HISTORY_FILE = path.join(DATA_DIR, 'orders_history.json');
 const STUDENTS_FILE = path.join(DATA_DIR, 'students.json');
 const SHOPS_FILE = path.join(DATA_DIR, 'shops.json');
 const CROWD_FILE = path.join(DATA_DIR, 'crowd.json');
+const SYSTEM_FILE = path.join(DATA_DIR, 'system.json');
 
 let crowdData = loadJSON(CROWD_FILE, {
   count: 4,
@@ -248,6 +250,116 @@ if (fs.existsSync(SHOPS_FILE)) {
 let ordersData = loadJSON(ORDERS_FILE, []);
 if (!fs.existsSync(ORDERS_FILE)) {
   saveJSON(ORDERS_FILE, ordersData);
+}
+
+let ordersHistory = loadJSON(ORDERS_HISTORY_FILE, []);
+if (!fs.existsSync(ORDERS_HISTORY_FILE)) {
+  saveJSON(ORDERS_HISTORY_FILE, ordersHistory);
+}
+
+// Cleanly archive any previous day orders so ordersData ONLY contains today's orders
+const todayStartMs = new Date(new Date().setHours(0, 0, 0, 0)).getTime();
+const pastOrders = ordersData.filter(o => !o.createdTime || o.createdTime < todayStartMs);
+if (pastOrders.length > 0) {
+  ordersHistory.push(...pastOrders);
+  saveJSON(ORDERS_HISTORY_FILE, ordersHistory);
+  ordersData = ordersData.filter(o => o.createdTime && o.createdTime >= todayStartMs);
+  saveJSON(ORDERS_FILE, ordersData);
+  console.log(`🧹 Separated ${pastOrders.length} past orders into orders_history.json. Active today orders: ${ordersData.length}`);
+}
+
+const todayISODate = new Date().toLocaleDateString('en-CA');
+let systemData = loadJSON(SYSTEM_FILE, {
+  operatingDate: todayISODate,
+  tokenCounter: 1,
+  lastResetTime: new Date().toISOString()
+});
+if (!fs.existsSync(SYSTEM_FILE)) {
+  saveJSON(SYSTEM_FILE, systemData);
+}
+
+function executeStartNewDay(targetShopId = 'all') {
+  const currentDay = new Date().toLocaleDateString('en-CA');
+  let refilledDishesCount = 0;
+
+  // 1. Refill Food & Juice inventory to full capacity
+  shopsData = loadJSON(SHOPS_FILE, shopsData);
+  shopsData.forEach(shop => {
+    if (targetShopId === 'all' || shop.id === targetShopId) {
+      shop.isOpen = true;
+      if (Array.isArray(shop.menu)) {
+        shop.menu.forEach(dish => {
+          dish.servingsCount = 25; // refilled to daily opening quota
+          dish.isAvailable = true;  // in stock
+          refilledDishesCount++;
+        });
+      }
+    }
+  });
+  saveJSON(SHOPS_FILE, shopsData);
+
+  // 2. Archive active orders to orders_history.json
+  ordersData = loadJSON(ORDERS_FILE, ordersData);
+  let ordersToArchive = [];
+  if (targetShopId === 'all') {
+    ordersToArchive = [...ordersData];
+    ordersData = [];
+  } else {
+    ordersToArchive = ordersData.filter(o => o.shopId === targetShopId);
+    ordersData = ordersData.filter(o => o.shopId !== targetShopId);
+  }
+
+  if (ordersToArchive.length > 0) {
+    ordersHistory = loadJSON(ORDERS_HISTORY_FILE, []);
+    ordersHistory.push(...ordersToArchive);
+    saveJSON(ORDERS_HISTORY_FILE, ordersHistory);
+  }
+  saveJSON(ORDERS_FILE, ordersData);
+
+  // 3. Reset token sequence to 1 when entire food court starts new day
+  if (targetShopId === 'all') {
+    systemData.tokenCounter = 1;
+    systemData.operatingDate = currentDay;
+  }
+  systemData.lastResetTime = new Date().toISOString();
+  saveJSON(SYSTEM_FILE, systemData);
+
+  // Background sync with Supabase to complete old orders and update menu
+  if (supabase) {
+    withSupabaseTimeout(async () => {
+      for (const s of shopsData) {
+        if (targetShopId === 'all' || s.id === targetShopId) {
+          await supabase.from('shops').update({ menu: s.menu, is_open: true }).eq('id', s.id);
+        }
+      }
+      if (targetShopId === 'all') {
+        await supabase.from('orders').update({ status: 'Completed' }).neq('status', 'Completed');
+      } else {
+        await supabase.from('orders').update({ status: 'Completed' }).eq('shop_id', targetShopId).neq('status', 'Completed');
+      }
+    }, 2000).catch(e => console.warn('Supabase new day sync notice:', e.message));
+  }
+
+  console.log(`☀️ [NEW DAY INITIALIZED] Target: ${targetShopId} • Refilled ${refilledDishesCount} dishes • Archived ${ordersToArchive.length} orders • Next Token: TK-${String(systemData.tokenCounter).padStart(2, '0')}`);
+
+  return {
+    success: true,
+    operatingDate: systemData.operatingDate,
+    targetShopId,
+    refilledDishesCount,
+    archivedOrdersCount: ordersToArchive.length,
+    activeOrdersCount: ordersData.length,
+    tokenCounter: systemData.tokenCounter,
+    lastResetTime: systemData.lastResetTime,
+    shops: shopsData,
+    orders: ordersData
+  };
+}
+
+// Auto-detect calendar date rollover on server start
+if (systemData.operatingDate && systemData.operatingDate !== todayISODate) {
+  console.log(`📅 Calendar rollover detected (${systemData.operatingDate} -> ${todayISODate}). Initializing fresh operational day automatically...`);
+  executeStartNewDay('all');
 }
 
 const defaultStudents = [
@@ -593,7 +705,9 @@ app.get('/api/orders', async (req, res) => {
   if (supabase) {
     try {
       await withSupabaseTimeout(async () => {
-        let query = supabase.from('orders').select('*').order('created_at', { ascending: false });
+        const todayIso = new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
+        const cutoff = systemData.lastResetTime || todayIso;
+        let query = supabase.from('orders').select('*').gte('created_at', cutoff).order('created_at', { ascending: false });
         if (rollNo) {
           query = query.ilike('student_roll', rollNo.trim());
         }
@@ -618,9 +732,14 @@ app.get('/api/orders', async (req, res) => {
 });
 
 app.post('/api/orders', async (req, res) => {
-  const tokenSeq = Math.floor(10 + Math.random() * 90);
+  let tokenNumber = req.body.tokenNumber;
+  if (!tokenNumber) {
+    const seq = systemData.tokenCounter || 1;
+    systemData.tokenCounter = seq + 1;
+    saveJSON(SYSTEM_FILE, systemData);
+    tokenNumber = `TK-${String(seq).padStart(2, '0')}`;
+  }
   const orderId = req.body.id || `KEC-${Math.floor(1000 + Math.random() * 9000)}`;
-  const tokenNumber = req.body.tokenNumber || `TK-${tokenSeq}`;
 
   const qrText = [
     `KEC FOOD COURT OFFICIAL BILL`,
@@ -837,6 +956,41 @@ app.patch('/api/orders/:id/claim', async (req, res) => {
   }
 
   res.json({ success: true, order });
+});
+
+// 6d. Daily Operations & Fresh Start Endpoints
+app.get('/api/day/status', (req, res) => {
+  ordersData = loadJSON(ORDERS_FILE, ordersData);
+  ordersHistory = loadJSON(ORDERS_HISTORY_FILE, ordersHistory);
+  res.json({
+    success: true,
+    operatingDate: systemData.operatingDate,
+    tokenCounter: systemData.tokenCounter,
+    activeOrdersCount: ordersData.length,
+    archivedOrdersCount: ordersHistory.length,
+    lastResetTime: systemData.lastResetTime
+  });
+});
+
+app.post('/api/day/start-new-day', (req, res) => {
+  const targetShopId = req.body && req.body.shopId ? req.body.shopId : 'all';
+  const result = executeStartNewDay(targetShopId);
+  res.json(result);
+});
+
+// 6e. Archived Orders History (Past Day Sales & Bills)
+app.get('/api/orders/history', (req, res) => {
+  const { rollNo, shopId } = req.query;
+  ordersHistory = loadJSON(ORDERS_HISTORY_FILE, ordersHistory);
+  let list = ordersHistory;
+  if (rollNo) {
+    const cleanRoll = rollNo.trim().toUpperCase();
+    list = list.filter(o => o.studentRoll && o.studentRoll.trim().toUpperCase() === cleanRoll);
+  }
+  if (shopId) {
+    list = list.filter(o => o.shopId === shopId);
+  }
+  res.json({ success: true, count: list.length, orders: list });
 });
 
 // 7. Overall Dashboard Statistics

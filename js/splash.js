@@ -66,13 +66,10 @@ export function initSplash() {
       document.body.style.overflow = '';
     }, 400);
 
-    // If no user is logged in, show login gateway; otherwise ensure gateway is hidden
-    const currentUser = state.getCurrentUser();
+    // Always prompt for login after the splash animation finishes
     setTimeout(() => {
-      if (!currentUser && window.showLoginGateway) {
+      if (window.showLoginGateway) {
         window.showLoginGateway('student');
-      } else if (currentUser && window.hideLoginGateway) {
-        window.hideLoginGateway();
       }
     }, 120);
   }

@@ -1,5 +1,95 @@
 [
   {
+    "id": "std_11",
+    "name": "keerthana",
+    "rollNo": "11",
+    "mobile": "8838733233",
+    "department": "Campus Diner",
+    "year": "Active Student",
+    "walletBalance": 850,
+    "avatar": "🎓",
+    "totalOrders": 3,
+    "totalSpent": 112,
+    "lastLogin": "2026-11-12T16:47:42.742Z",
+    "createdAt": "2026-11-12T16:41:36.289Z",
+    "lastOrderTime": "2026-11-12T16:44:16.040Z"
+  },
+  {
+    "id": "std_18",
+    "name": "virat",
+    "rollNo": "18",
+    "mobile": "9845240012",
+    "department": "Campus Diner",
+    "year": "Active Student",
+    "walletBalance": 850,
+    "avatar": "🎓",
+    "totalOrders": 3,
+    "totalSpent": 247,
+    "lastLogin": "2026-11-12T16:29:07.210Z",
+    "createdAt": "2026-11-12T16:09:25.578Z",
+    "lastOrderTime": "2026-11-12T16:29:39.729Z"
+  },
+  {
+    "id": "std_21EC108",
+    "name": "Aravind Kumar",
+    "rollNo": "21EC108",
+    "mobile": "98427 06474",
+    "department": "Computer Science & Engineering",
+    "year": "Active Student",
+    "walletBalance": 850,
+    "avatar": "🎓",
+    "totalOrders": 18,
+    "totalSpent": 918,
+    "lastLogin": "2026-11-12T16:04:34.612Z",
+    "lastOrderTime": "2026-11-12T16:21:49.415Z",
+    "createdAt": "2026-11-12T16:04:34.612Z"
+  },
+  {
+    "id": "std_25CSR146",
+    "name": "kumar",
+    "rollNo": "25CSR146",
+    "mobile": "9876543210",
+    "department": "Computer Science & Engineering",
+    "year": "Active Student",
+    "walletBalance": 850,
+    "avatar": "🎓",
+    "totalOrders": 6,
+    "totalSpent": 600,
+    "lastLogin": "2026-11-12T16:04:34.605Z",
+    "lastOrderTime": "2026-11-12T16:21:49.376Z",
+    "createdAt": "2026-11-12T16:04:34.605Z"
+  },
+  {
+    "id": "std_25CSR136",
+    "name": "kesavan",
+    "rollNo": "25CSR136",
+    "mobile": "6380447525",
+    "department": "Computer Science & Engineering",
+    "year": "Active Student",
+    "walletBalance": 850,
+    "avatar": "🎓",
+    "totalOrders": 12,
+    "totalSpent": 22812,
+    "lastLogin": "2026-11-12T16:04:34.569Z",
+    "lastOrderTime": "2026-11-12T16:21:49.398Z",
+    "createdAt": "2026-11-12T16:04:34.569Z"
+  },
+  {
+    "id": "std_25CSR152",
+    "name": "lokesh",
+    "rollNo": "25CSR152",
+    "mobile": "6369548861",
+    "department": "Computer Science & Engineering",
+    "year": "Active Student",
+    "walletBalance": 850,
+    "avatar": "🎓",
+    "totalOrders": 6,
+    "totalSpent": 1956,
+    "lastLogin": "2026-11-12T16:04:34.457Z",
+    "lastOrderTime": "2026-11-12T16:21:49.352Z",
+    "createdAt": "2026-11-12T16:04:34.457Z"
+  },
+  {
     "id": "std_25CSR112",
     "name": "keerthana",
     "rollNo": "25CSR112",
@@ -8,11 +98,11 @@
     "year": "Active Student",
     "walletBalance": 850,
     "avatar": "🎓",
-    "totalOrders": 1,
-    "totalSpent": 74,
+    "totalOrders": 13,
+    "totalSpent": 632,
     "lastLogin": "2026-11-10T05:37:32.284Z",
     "createdAt": "2026-11-10T05:37:32.284Z",
-    "lastOrderTime": "2026-11-10T05:37:59.674Z"
+    "lastOrderTime": "2026-11-12T16:21:49.275Z"
   },
   {
     "id": "std_25CSR173",
@@ -23,11 +113,11 @@
     "year": "Active Student",
     "walletBalance": 850,
     "avatar": "🎓",
-    "totalOrders": 1,
-    "totalSpent": 126,
+    "totalOrders": 7,
+    "totalSpent": 882,
     "lastLogin": "2026-10-28T05:47:06.507Z",
     "createdAt": "2026-10-28T05:47:06.507Z",
-    "lastOrderTime": "2026-10-28T05:47:39.431Z"
+    "lastOrderTime": "2026-11-12T16:21:49.284Z"
   },
   {
     "id": "std_25CSR131",
@@ -38,10 +128,10 @@
     "year": "Active Student",
     "walletBalance": 850,
     "avatar": "🎓",
-    "totalOrders": 2,
-    "totalSpent": 74,
+    "totalOrders": 8,
+    "totalSpent": 296,
     "lastLogin": "2026-10-28T05:28:00.866Z",
-    "lastOrderTime": "2026-10-28T05:28:33.454Z",
+    "lastOrderTime": "2026-11-12T16:21:49.294Z",
     "createdAt": "2026-10-28T05:28:00.866Z"
   },
   {
@@ -53,11 +143,11 @@
     "year": "Active Student",
     "walletBalance": 850,
     "avatar": "🎓",
-    "totalOrders": 10,
-    "totalSpent": 190,
+    "totalOrders": 16,
+    "totalSpent": 304,
     "lastLogin": "2026-10-27T19:40:40.298Z",
     "createdAt": "2026-10-27T19:40:40.298Z",
-    "lastOrderTime": "2026-10-27T19:40:41.569Z"
+    "lastOrderTime": "2026-11-12T16:21:49.302Z"
   },
   {
     "id": "std_25CSR134",
@@ -68,10 +158,10 @@
     "year": "Active Student",
     "walletBalance": 850,
     "avatar": "🎓",
-    "totalOrders": 6,
-    "totalSpent": 326,
+    "totalOrders": 30,
+    "totalSpent": 2168,
     "lastLogin": "2026-10-28T06:06:42.215Z",
     "createdAt": "2026-10-27T19:13:56.781Z",
-    "lastOrderTime": "2026-10-28T06:16:48.556Z"
+    "lastOrderTime": "2026-11-12T16:21:49.344Z"
   }
 ]
