@@ -27,7 +27,7 @@
         "category": "Parotta & Roti",
         "prepTime": "3m",
         "isAvailable": true,
-        "servingsCount": 5
+        "servingsCount": 25
       },
       {
         "id": "f-2",
@@ -38,7 +38,7 @@
         "category": "Parotta & Roti",
         "prepTime": "3m",
         "isAvailable": true,
-        "servingsCount": 24
+        "servingsCount": 25
       },
       {
         "id": "f-3",
@@ -50,7 +50,7 @@
         "category": "Parotta & Roti",
         "prepTime": "8m",
         "isAvailable": true,
-        "servingsCount": 21
+        "servingsCount": 25
       },
       {
         "id": "f-4",
@@ -61,7 +61,7 @@
         "category": "Parotta & Roti",
         "prepTime": "6m",
         "isAvailable": true,
-        "servingsCount": 23
+        "servingsCount": 25
       },
       {
         "id": "f-5",
@@ -73,7 +73,7 @@
         "category": "Parotta & Roti",
         "prepTime": "8m",
         "isAvailable": true,
-        "servingsCount": 20
+        "servingsCount": 25
       },
       {
         "id": "f-6",
@@ -85,7 +85,7 @@
         "category": "Parotta & Roti",
         "prepTime": "8m",
         "isAvailable": true,
-        "servingsCount": 24
+        "servingsCount": 25
       },
       {
         "id": "f-7",
@@ -97,7 +97,7 @@
         "category": "Parotta & Roti",
         "prepTime": "10m",
         "isAvailable": true,
-        "servingsCount": 6
+        "servingsCount": 25
       },
       {
         "id": "f-8",
@@ -108,7 +108,7 @@
         "category": "Dosa & Roast",
         "prepTime": "5m",
         "isAvailable": true,
-        "servingsCount": 19
+        "servingsCount": 25
       },
       {
         "id": "f-9",
@@ -120,7 +120,7 @@
         "category": "Dosa & Roast",
         "prepTime": "6m",
         "isAvailable": true,
-        "servingsCount": 24
+        "servingsCount": 25
       },
       {
         "id": "f-10",
@@ -131,7 +131,7 @@
         "category": "Dosa & Roast",
         "prepTime": "6m",
         "isAvailable": true,
-        "servingsCount": 23
+        "servingsCount": 25
       },
       {
         "id": "f-11",
@@ -141,7 +141,8 @@
         "price": 55,
         "category": "Dosa & Roast",
         "prepTime": "7m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 25
       },
       {
         "id": "f-12",
@@ -152,7 +153,8 @@
         "price": 55,
         "category": "Dosa & Roast",
         "prepTime": "6m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 25
       },
       {
         "id": "f-13",
@@ -164,7 +166,7 @@
         "category": "Dosa & Roast",
         "prepTime": "7m",
         "isAvailable": true,
-        "servingsCount": 24
+        "servingsCount": 25
       },
       {
         "id": "f-14",
@@ -174,7 +176,8 @@
         "price": 25,
         "category": "Dosa & Roast",
         "prepTime": "4m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 25
       },
       {
         "id": "f-15",
@@ -185,7 +188,7 @@
         "category": "Dosa & Roast",
         "prepTime": "5m",
         "isAvailable": true,
-        "servingsCount": 24
+        "servingsCount": 25
       },
       {
         "id": "f-16",
@@ -195,7 +198,8 @@
         "price": 35,
         "category": "Dosa & Roast",
         "prepTime": "5m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 25
       },
       {
         "id": "f-17",
@@ -205,7 +209,8 @@
         "price": 20,
         "category": "Dosa & Roast",
         "prepTime": "5m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 25
       },
       {
         "id": "f-18",
@@ -215,7 +220,8 @@
         "price": 20,
         "category": "Egg Specials",
         "prepTime": "3m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 25
       },
       {
         "id": "f-19",
@@ -225,7 +231,8 @@
         "price": 15,
         "category": "Egg Specials",
         "prepTime": "2m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 25
       },
       {
         "id": "f-20",
@@ -235,7 +242,8 @@
         "price": 15,
         "category": "Egg Specials",
         "prepTime": "2m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 25
       },
       {
         "id": "f-21",
@@ -247,7 +255,7 @@
         "category": "Egg Specials",
         "prepTime": "2m",
         "isAvailable": true,
-        "servingsCount": 24
+        "servingsCount": 25
       },
       {
         "id": "f-22",
@@ -257,7 +265,8 @@
         "price": 25,
         "category": "Egg Specials",
         "prepTime": "4m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 25
       },
       {
         "id": "f-23",
@@ -267,7 +276,8 @@
         "price": 60,
         "category": "Fried Rice",
         "prepTime": "8m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 25
       },
       {
         "id": "f-24",
@@ -279,7 +289,7 @@
         "category": "Fried Rice",
         "prepTime": "8m",
         "isAvailable": true,
-        "servingsCount": 23
+        "servingsCount": 25
       },
       {
         "id": "f-25",
@@ -289,7 +299,8 @@
         "price": 65,
         "category": "Fried Rice",
         "prepTime": "9m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 25
       },
       {
         "id": "f-26",
@@ -299,7 +310,8 @@
         "price": 70,
         "category": "Fried Rice",
         "prepTime": "9m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 25
       },
       {
         "id": "f-27",
@@ -309,7 +321,8 @@
         "price": 70,
         "category": "Fried Rice",
         "prepTime": "8m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 25
       },
       {
         "id": "f-28",
@@ -319,7 +332,8 @@
         "price": 75,
         "category": "Fried Rice",
         "prepTime": "8m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 25
       },
       {
         "id": "f-29",
@@ -330,7 +344,8 @@
         "price": 80,
         "category": "Fried Rice",
         "prepTime": "10m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 25
       },
       {
         "id": "f-30",
@@ -341,7 +356,8 @@
         "price": 85,
         "category": "Fried Rice",
         "prepTime": "10m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 25
       },
       {
         "id": "f-31",
@@ -352,7 +368,7 @@
         "category": "Noodles",
         "prepTime": "8m",
         "isAvailable": true,
-        "servingsCount": 24
+        "servingsCount": 25
       },
       {
         "id": "f-32",
@@ -362,7 +378,8 @@
         "price": 65,
         "category": "Noodles",
         "prepTime": "8m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 25
       },
       {
         "id": "f-33",
@@ -372,7 +389,8 @@
         "price": 65,
         "category": "Noodles",
         "prepTime": "9m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 25
       },
       {
         "id": "f-34",
@@ -382,7 +400,8 @@
         "price": 70,
         "category": "Noodles",
         "prepTime": "9m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 25
       },
       {
         "id": "f-35",
@@ -393,7 +412,7 @@
         "category": "Noodles",
         "prepTime": "8m",
         "isAvailable": true,
-        "servingsCount": 24
+        "servingsCount": 25
       },
       {
         "id": "f-36",
@@ -403,7 +422,8 @@
         "price": 75,
         "category": "Noodles",
         "prepTime": "8m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 25
       },
       {
         "id": "f-37",
@@ -415,7 +435,7 @@
         "category": "Noodles",
         "prepTime": "10m",
         "isAvailable": true,
-        "servingsCount": 24
+        "servingsCount": 25
       },
       {
         "id": "f-38",
@@ -426,7 +446,8 @@
         "price": 85,
         "category": "Noodles",
         "prepTime": "10m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 25
       },
       {
         "id": "f-39",
@@ -438,7 +459,7 @@
         "category": "Chicken Gravy",
         "prepTime": "12m",
         "isAvailable": true,
-        "servingsCount": 24
+        "servingsCount": 25
       },
       {
         "id": "f-40",
@@ -450,7 +471,7 @@
         "category": "Chicken Gravy",
         "prepTime": "12m",
         "isAvailable": true,
-        "servingsCount": 22
+        "servingsCount": 25
       },
       {
         "id": "f-41",
@@ -462,7 +483,7 @@
         "category": "Chicken Gravy",
         "prepTime": "12m",
         "isAvailable": true,
-        "servingsCount": 24
+        "servingsCount": 25
       },
       {
         "id": "f-42",
@@ -473,7 +494,8 @@
         "price": 100,
         "category": "Chicken Gravy",
         "prepTime": "12m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 25
       },
       {
         "id": "f-43",
@@ -485,7 +507,7 @@
         "category": "Chicken Dry",
         "prepTime": "10m",
         "isAvailable": true,
-        "servingsCount": 23
+        "servingsCount": 25
       },
       {
         "id": "f-44",
@@ -496,7 +518,8 @@
         "price": 100,
         "category": "Chicken Dry",
         "prepTime": "12m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 25
       },
       {
         "id": "f-45",
@@ -507,7 +530,7 @@
         "category": "Chicken Dry",
         "prepTime": "12m",
         "isAvailable": true,
-        "servingsCount": 24
+        "servingsCount": 25
       },
       {
         "id": "f-46",
@@ -518,7 +541,8 @@
         "price": 100,
         "category": "Chicken Dry",
         "prepTime": "10m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 25
       },
       {
         "id": "f-47",
@@ -528,7 +552,8 @@
         "price": 100,
         "category": "Chicken Dry",
         "prepTime": "12m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 25
       },
       {
         "id": "f-48",
@@ -539,7 +564,7 @@
         "category": "Chicken Dry",
         "prepTime": "10m",
         "isAvailable": true,
-        "servingsCount": 24
+        "servingsCount": 25
       },
       {
         "id": "f-49",
@@ -549,7 +574,8 @@
         "price": 100,
         "category": "Chicken Dry",
         "prepTime": "10m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 25
       },
       {
         "id": "f-50",
@@ -559,7 +585,8 @@
         "price": 100,
         "category": "Chicken Dry",
         "prepTime": "10m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 25
       },
       {
         "id": "f-51",
@@ -570,7 +597,8 @@
         "price": 50,
         "category": "Veg Specials",
         "prepTime": "8m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 25
       },
       {
         "id": "f-52",
@@ -581,7 +609,7 @@
         "category": "Veg Specials",
         "prepTime": "10m",
         "isAvailable": true,
-        "servingsCount": 24
+        "servingsCount": 25
       },
       {
         "id": "f-53",
@@ -591,7 +619,8 @@
         "price": 70,
         "category": "Veg Specials",
         "prepTime": "10m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 25
       },
       {
         "id": "f-54",
@@ -601,7 +630,8 @@
         "price": 70,
         "category": "Veg Specials",
         "prepTime": "10m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 25
       },
       {
         "id": "f-55",
@@ -611,7 +641,8 @@
         "price": 70,
         "category": "Veg Specials",
         "prepTime": "8m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 25
       },
       {
         "id": "f-56",
@@ -621,7 +652,8 @@
         "price": 80,
         "category": "Veg Specials",
         "prepTime": "10m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 25
       },
       {
         "id": "f-57",
@@ -632,7 +664,7 @@
         "category": "Veg Specials",
         "prepTime": "10m",
         "isAvailable": true,
-        "servingsCount": 24
+        "servingsCount": 25
       },
       {
         "id": "f-58",
@@ -643,7 +675,7 @@
         "category": "Veg Specials",
         "prepTime": "10m",
         "isAvailable": true,
-        "servingsCount": 24
+        "servingsCount": 25
       },
       {
         "id": "f-59",
@@ -655,7 +687,7 @@
         "category": "Veg Specials",
         "prepTime": "12m",
         "isAvailable": true,
-        "servingsCount": 24
+        "servingsCount": 25
       },
       {
         "id": "f-60",
@@ -666,7 +698,7 @@
         "category": "Veg Specials",
         "prepTime": "10m",
         "isAvailable": true,
-        "servingsCount": 24
+        "servingsCount": 25
       },
       {
         "id": "f-61",
@@ -677,7 +709,7 @@
         "category": "Naan & Roti",
         "prepTime": "5m",
         "isAvailable": true,
-        "servingsCount": 22
+        "servingsCount": 25
       },
       {
         "id": "f-62",
@@ -689,7 +721,7 @@
         "category": "Naan & Roti",
         "prepTime": "5m",
         "isAvailable": true,
-        "servingsCount": 23
+        "servingsCount": 25
       },
       {
         "id": "f-63",
@@ -700,7 +732,7 @@
         "category": "Naan & Roti",
         "prepTime": "4m",
         "isAvailable": true,
-        "servingsCount": 23
+        "servingsCount": 25
       },
       {
         "id": "f-64",
@@ -711,7 +743,7 @@
         "category": "Naan & Roti",
         "prepTime": "4m",
         "isAvailable": true,
-        "servingsCount": 24
+        "servingsCount": 25
       },
       {
         "id": "f-65",
@@ -723,7 +755,7 @@
         "category": "Biryani",
         "prepTime": "5m",
         "isAvailable": true,
-        "servingsCount": 24
+        "servingsCount": 25
       },
       {
         "id": "f-66",
@@ -734,7 +766,7 @@
         "category": "Egg Specials",
         "prepTime": "8m",
         "isAvailable": true,
-        "servingsCount": 24
+        "servingsCount": 25
       }
     ]
   },
@@ -765,7 +797,8 @@
         "price": 80,
         "category": "Juice",
         "prepTime": "5m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 25
       },
       {
         "id": "m2-2",
@@ -776,7 +809,8 @@
         "price": 35,
         "category": "Juice",
         "prepTime": "3m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 25
       },
       {
         "id": "m2-3",
@@ -788,7 +822,7 @@
         "category": "Juice",
         "prepTime": "6m",
         "isAvailable": true,
-        "servingsCount": 22
+        "servingsCount": 25
       },
       {
         "id": "m2-4",
@@ -799,7 +833,8 @@
         "price": 75,
         "category": "Juice",
         "prepTime": "5m",
-        "isAvailable": true
+        "isAvailable": true,
+        "servingsCount": 25
       }
     ]
   }
